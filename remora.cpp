@@ -99,7 +99,6 @@ enum State {
     ST_START,
     ST_IDLE,
     ST_RUNNING,
-    ST_STOP,
     ST_RESET,
     ST_WDRESET
 };
@@ -515,19 +514,6 @@ void core1_entry()
                     currentState = ST_RESET;
                 }
 
-                break;
-
-            case ST_STOP:
-                // do stop tasks
-                if (currentState != prevState)
-                {
-                    printf("\n## Entering STOP state\n");
-                }
-                prevState = currentState;
-                //servo thread is run outside of interrupt context.
-                servoThread->run();              
-
-                currentState = ST_STOP;
                 break;
 
             case ST_RESET:
