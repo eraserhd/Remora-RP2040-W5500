@@ -576,11 +576,6 @@ static rxData_t* getAltRxBuffer(RxPingPongBuffer* buffer) {
     return &buffer->rxBuffers[1 - buffer->currentRxBuffer];
 }
 
-static txData_t* getAltTxBuffer(TxPingPongBuffer* buffer) {
-    return &buffer->txBuffers[1 - buffer->currentTxBuffer];
-}
-
-
 int main()
 {
     // Network configuration
