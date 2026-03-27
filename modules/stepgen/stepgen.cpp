@@ -16,11 +16,6 @@ void createStepgen()
     const char* step = module["Step Pin"];
     const char* dir = module["Direction Pin"];
 
-    // configure pointers to data source and feedback location
-    //ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    //ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    //ptrJointEnable = &rxData.jointEnable;
-
     // create the step generator, register it in the thread
     Module* stepgen = new Stepgen(base_freq, joint, step, dir, STEPBIT);
     baseThread->registerModule(stepgen);
