@@ -103,8 +103,6 @@ void Stepgen::makePulses()
             txData->jointFeedback[this->jointNumber] = this->rawCount;  
         }
     }
-
-
 }
 
 
