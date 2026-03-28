@@ -14,9 +14,10 @@ private:
     int jointNumber;                // LinuxCNC joint number
     int mask;
 
-    int32_t rawCount;               // current position raw count - not currently used - mirrors original stepgen.c
+    volatile int32_t stepperPosition;
+    volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;         // Direct Digital Synthesis (DDS) accumulator
-    int32_t DDSaddValue;
+
     Pin *stepPin, *directionPin;        // class object members - Pin objects
 
 public:
@@ -25,6 +26,7 @@ public:
     static Stepgen* load(JsonObject module);
 
     void frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand);
+    inline int32_t jointFeedback() const { return stepperPosition; }
 
     virtual void update(void);           // Module default interface
     virtual void updatePost(void);

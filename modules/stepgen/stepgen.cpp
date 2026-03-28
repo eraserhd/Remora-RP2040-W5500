@@ -21,9 +21,9 @@ Stepgen *Stepgen::load(JsonObject module)
 Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction)
     : jointNumber(jointNumber)
     , mask(1 << jointNumber)
-    , rawCount(0)
-    , DDSaccumulator(0)
+    , stepperPosition(0)
     , DDSaddValue(0)
+    , DDSaccumulator(0)
     , stepPin(new Pin(step, OUTPUT))
     , directionPin(new Pin(direction, OUTPUT))
 {
@@ -63,15 +63,15 @@ void Stepgen::update()
 
     if (isForward)
     {
-        ++rawCount;
+        ++stepperPosition;
     }
     else
     {
-        --rawCount;
+        --stepperPosition;
     }
 
     txData_t *txData = getCurrentTxBuffer(&txPingPongBuffer);
-    txData->jointFeedback[this->jointNumber] = this->rawCount;
+    txData->jointFeedback[this->jointNumber] = this->stepperPosition;
 }
 
 void Stepgen::updatePost()
