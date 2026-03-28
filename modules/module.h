@@ -8,11 +8,6 @@
 
 class Module
 {
-    protected:
-
-        int32_t threadFreq;
-
-
     public:
 
         Module();                   // constructor to run the module at the thread frequency
