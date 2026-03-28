@@ -404,7 +404,6 @@ void core1_entry()
 
     for (;;)
     {
-
         printf("\n## Entering IDLE state\n");
         do
         {
@@ -420,7 +419,6 @@ void core1_entry()
         while (comms->getStatus());
 
         printf("\n## Entering RESET state\n");
-
         rxData_t* pruRxData = getCurrentRxBuffer(&rxPingPongBuffer);
         memset(pruRxData->rxBuffer, 0, sizeof(pruRxData->rxBuffer));
     }
