@@ -102,7 +102,6 @@ enum State {
     ST_RESET,
 };
 
-uint8_t resetCnt;
 uint32_t base_freq = PRU_BASEFREQ;
 uint32_t servo_freq = PRU_SERVOFREQ;
 
