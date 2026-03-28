@@ -43,9 +43,6 @@ void createDigitalPin()
     }
     else inv = false;
 
-    //ptrOutputs = &pruRxData->outputs;
-    //ptrInputs = &pruTxData->inputs;
-
     printf("Make Digital %s at pin %s\n", mode, pin);
 
     if (!strcmp(mode,"Output"))
@@ -70,7 +67,6 @@ void createDigitalPin()
                 METHOD DEFINITIONS
 ************************************************************************/
 
-//DigitalPin::DigitalPin(volatile uint32_t &ptrData, int mode, std::string portAndPin, int bitNumber, bool invert, int modifier) :
 DigitalPin::DigitalPin(int mode, std::string portAndPin, int bitNumber, bool invert, int modifier) :
     mode(mode),
     portAndPin(portAndPin),
@@ -80,7 +76,6 @@ DigitalPin::DigitalPin(int mode, std::string portAndPin, int bitNumber, bool inv
 {
     this->pin = new Pin(this->portAndPin, this->mode, this->modifier);      // Input 0x0, Output 0x1
     this->mask = 1 << this->bitNumber;
-    //printf("ptrData = %x\n", ptrData); //can no longer just use a single pointer.
 }
 
 
