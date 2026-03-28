@@ -107,10 +107,4 @@ void DigitalPin::update()
         else
             currentTxPacket->inputs &= ~this->mask;
     }
-    else                                                // the pin is configured as an output
-    {
-        rxData_t* currentRxPacket = getCurrentRxBuffer(&rxPingPongBuffer);
-        bool pinState = currentRxPacket->outputs & this->mask;       // get the value of the bit in the data source
-        write(pinState);
-    }
 }

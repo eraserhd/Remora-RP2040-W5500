@@ -691,6 +691,12 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
             int32_t frequencyCmd = rxBuffer->jointFreqCmd[i];
             stepGenerators[i]->frequencyCommand(base_freq, isEnabled, frequencyCmd);
         }
+        for (int i = 0; i < sizeof(outputs)/sizeof(outputs[0]); ++i)
+        {
+            if (NULL == outputs[i])
+                continue;
+            outputs[i]->write(rxBuffer->outputs & (1 << i));
+        }
 
         int32_t header = PRU_ACKNOWLEDGE;
         reply(upcb, addr, port, (char*)&header, sizeof(header));
