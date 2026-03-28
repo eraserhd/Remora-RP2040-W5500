@@ -432,8 +432,9 @@ void core1_entry()
         while (comms->getStatus());
 
         printf("\n## Entering RESET state\n");
-        rxData_t* pruRxData = getCurrentRxBuffer(&rxPingPongBuffer);
-        memset(pruRxData->rxBuffer, 0, sizeof(pruRxData->rxBuffer));
+        // Stop all movement
+        for (int i = 0; i < JOINTS; i++)
+            stepGenerators[i]->frequencyCommand(base_freq, false, 0);
     }
 }
 
