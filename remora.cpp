@@ -649,6 +649,13 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
                 continue;
             txBuffer->jointFeedback[i] = stepGenerators[i]->jointFeedback();
         }
+        for (int i = 0; i < sizeof(inputs)/sizeof(inputs[0]); ++i)
+        {
+            if (NULL == inputs[i])
+                continue;
+            if (inputs[i]->read())
+                txBuffer->inputs |= (1 << i);
+        }
 
         reply(upcb, addr, port, (char*)&txBuffer->txBuffer, txlen);
         break;

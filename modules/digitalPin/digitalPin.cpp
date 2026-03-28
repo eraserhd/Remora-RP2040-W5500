@@ -99,12 +99,4 @@ void DigitalPin::write(bool pinState) const
 
 void DigitalPin::update()
 {
-    if (this->mode == 0x0)                                  // the pin is configured as an input
-    {
-        txData_t* currentTxPacket = getCurrentTxBuffer(&txPingPongBuffer);
-        if (read())
-            currentTxPacket->inputs |= this->mask;
-        else
-            currentTxPacket->inputs &= ~this->mask;
-    }
 }
