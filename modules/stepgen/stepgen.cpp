@@ -20,12 +20,13 @@ Stepgen *Stepgen::load(JsonObject module)
 
 Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction)
     : jointNumber(jointNumber)
+    , mask(1 << jointNumber)
+    , rawCount(0)
+    , DDSaccumulator(0)
+    , DDSaddValue(0)
+    , stepPin(new Pin(step, OUTPUT))
+    , directionPin(new Pin(direction, OUTPUT))
 {
-    this->stepPin = new Pin(step, OUTPUT);
-    this->directionPin = new Pin(direction, OUTPUT);
-    this->DDSaccumulator = 0;
-    this->rawCount = 0;
-    this->mask = 1 << this->jointNumber;
 }
 
 void Stepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
