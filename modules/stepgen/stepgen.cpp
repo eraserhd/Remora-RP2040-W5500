@@ -29,12 +29,10 @@ void createStepgen()
 
 Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction, int stepBit) :
     jointNumber(jointNumber),
-    step(step),
-    direction(direction),
     stepBit(stepBit)
 {
-    this->stepPin = new Pin(this->step, OUTPUT);
-    this->directionPin = new Pin(this->direction, OUTPUT);
+    this->stepPin = new Pin(step, OUTPUT);
+    this->directionPin = new Pin(direction, OUTPUT);
     this->DDSaccumulator = 0;
     this->rawCount = 0;
     this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;

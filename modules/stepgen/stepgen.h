@@ -19,8 +19,6 @@ class Stepgen : public Module
     int jointNumber;                // LinuxCNC joint number
     int mask;
 
-    std::string step, direction;      // physical pins connections
-
     bool isEnabled;                 // flag to enable the step generator
     bool isForward;                 // current direction
 
