@@ -610,12 +610,24 @@ void udpServerInit(void)
     udp_recv(upcb, udp_data_callback, NULL);
 }
 
+void reply(struct udp_pcb *upcb, const ip_addr_t *addr, u16_t port, char* data, size_t len)
+{
+    struct pbuf *txBuf = pbuf_alloc(PBUF_TRANSPORT, len, PBUF_RAM);
+    pbuf_take(txBuf, data, len);
+
+    // Connect to the remote client
+    udp_connect(upcb, addr, port);
+    udp_send(upcb, txBuf);
+
+    // free the UDP connection, so we can accept new clients
+    udp_disconnect(upcb);
+    pbuf_free(txBuf);
+}
 
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
     int txlen = 0;
     int n;
-    struct pbuf *txBuf;
     uint32_t status;
 
     //received data from host needs to go into the inactive buffer
@@ -649,6 +661,8 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
                 continue;
             txBuffer->jointFeedback[i] = stepGenerators[i]->jointFeedback();
         }
+
+        reply(upcb, addr, port, (char*)&txBuffer->txBuffer, txlen);
         break;
 
     case PRU_WRITE:
@@ -675,24 +689,8 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
             int32_t frequencyCmd = rxBuffer->jointFreqCmd[i];
             stepGenerators[i]->frequencyCommand(base_freq, isEnabled, frequencyCmd);
         }
+
+        reply(upcb, addr, port, (char*)&txBuffer->txBuffer, txlen);
         break;
     }
-
-    // allocate pbuf from RAM
-    txBuf = pbuf_alloc(PBUF_TRANSPORT, txlen, PBUF_RAM);
-
-    // copy the data into the buffer
-    pbuf_take(txBuf, (char*)&txBuffer->txBuffer, txlen);
-
-    // Connect to the remote client
-    udp_connect(upcb, addr, port);
-
-    // Send a Reply to the Client
-    udp_send(upcb, txBuf);
-
-    // free the UDP connection, so we can accept new clients
-    udp_disconnect(upcb);
-
-    // Free the p_tx buffer
-    pbuf_free(txBuf);
 }
