@@ -29,9 +29,6 @@ class Stepgen : public Module
     int32_t DDSaddValue;                // DDS accumulator add vdd value
     int32_t stepBit;                // position in the DDS accumulator that triggers a step pulse
 
-    rxData_t* rxData;               // pointer to ping-pong buffer
-      txData_t* txData;               // pointer to ping-pong buffer
-
   public:
 
     Stepgen(int32_t, int, std::string, std::string, int);  // constructor

@@ -57,8 +57,8 @@ void Stepgen::makePulses()
 {
     int32_t stepNow = 0;
 
-    this->rxData = getCurrentRxBuffer(&rxPingPongBuffer);
-    this->txData = getCurrentTxBuffer(&txPingPongBuffer);
+    rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
+    txData_t *txData = getCurrentTxBuffer(&txPingPongBuffer);
 
     this->isEnabled = ((rxData->jointEnable & this->mask) != 0);
 
