@@ -26,6 +26,9 @@ private:
 public:
     DigitalPin(int, std::string, int, bool, int);
 
+    bool read() const;
+    void write(bool pinState) const;
+
     virtual void update(void);
 };
 
