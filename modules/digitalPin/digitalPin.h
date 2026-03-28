@@ -3,9 +3,8 @@
 
 #include <cstdint>
 
-#include "../extern.h"
-#include "../module.h"
 #include "../../drivers/pin/pin.h"
+#include "../lib/ArduinoJson6/ArduinoJson.h"
 
 
 class DigitalPin
