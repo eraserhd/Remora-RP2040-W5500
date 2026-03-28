@@ -64,8 +64,8 @@ void Stepgen::makePulses()
 
     if (this->isEnabled == true)                                                // this Step generator is enables so make the pulses
     {
-        this->frequencyCommand = rxData->jointFreqCmd[this->jointNumber];             // Get the latest frequency command via pointer to the data source
-        this->DDSaddValue = this->frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
+        int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];             // Get the latest frequency command via pointer to the data source
+        this->DDSaddValue = frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
         stepNow = this->DDSaccumulator;                                         // Save the current DDS accumulator value
         this->DDSaccumulator += this->DDSaddValue;                              // Update the DDS accumulator with the new add value
         stepNow ^= this->DDSaccumulator;                                        // Test for changes in the low half of the DDS accumulator
