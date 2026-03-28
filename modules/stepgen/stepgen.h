@@ -38,7 +38,6 @@ class Stepgen : public Module
     virtual void updatePost(void);
     void makePulses();
     void stopPulses();
-    void setEnabled(bool);
 };
 
 
