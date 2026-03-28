@@ -59,15 +59,15 @@ void Stepgen::makePulses()
         return;
 
     int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];             // Get the latest frequency command via pointer to the data source
-    this->DDSaddValue = frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
+    int32_t DDSaddValue = frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
     int32_t stepNow = this->DDSaccumulator;                                         // Save the current DDS accumulator value
-    this->DDSaccumulator += this->DDSaddValue;                              // Update the DDS accumulator with the new add value
+    this->DDSaccumulator += DDSaddValue;                              // Update the DDS accumulator with the new add value
     stepNow ^= this->DDSaccumulator;                                        // Test for changes in the low half of the DDS accumulator
     stepNow &= (1L << this->stepBit);                                       // Check for the step bit
     if (!stepNow)
         return;
 
-    bool isForward = (this->DDSaddValue > 0);
+    bool isForward = (DDSaddValue > 0);
     this->directionPin->set(isForward);                           // Set direction pin
     this->stepPin->set(true);                                           // Raise step pin
 
