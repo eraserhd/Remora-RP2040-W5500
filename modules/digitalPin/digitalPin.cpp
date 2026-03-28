@@ -45,18 +45,10 @@ DigitalPin *DigitalPin::load(JsonObject module)
     printf("Make Digital %s at pin %s\n", mode, pin);
 
     if (!strcmp(mode,"Output"))
-    {
-        DigitalPin* digitalPin = new DigitalPin(1, pin, dataBit, inv, mod);
-        servoThread->registerModule(digitalPin);
-        return digitalPin;
-    }
+        return new DigitalPin(1, pin, dataBit, inv, mod);
 
     if (!strcmp(mode,"Input"))
-    {
-        DigitalPin* digitalPin = new DigitalPin(0, pin, dataBit, inv, mod);
-        servoThread->registerModule(digitalPin);
-        return digitalPin;
-    }
+        return new DigitalPin(0, pin, dataBit, inv, mod);
 
     printf("Error - incorrectly defined Digital Pin\n");
     return NULL;
