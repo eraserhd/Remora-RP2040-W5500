@@ -106,7 +106,6 @@ uint32_t base_freq = PRU_BASEFREQ;
 uint32_t servo_freq = PRU_SERVOFREQ;
 
 // boolean
-volatile bool PRUreset;
 bool configError = false;
 bool threadsRunning = false;
 
