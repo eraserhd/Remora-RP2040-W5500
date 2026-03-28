@@ -622,8 +622,8 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
     rxData_t* rxBuffer = getAltRxBuffer(&rxPingPongBuffer);
     //data sent to host needs to come from the active buffer
     txData_t* txBuffer = getCurrentTxBuffer(&txPingPongBuffer);
-
     memcpy(&rxBuffer->rxBuffer, p->payload, p->len);
+    pbuf_free(p);
 
     switch (rxBuffer->header)
     {
@@ -695,7 +695,4 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 
     // Free the p_tx buffer
     pbuf_free(txBuf);
-
-    // Free the p buffer
-    pbuf_free(p);
 }
