@@ -18,11 +18,6 @@ Stepgen *Stepgen::load(JsonObject module)
     return stepgen;
 }
 
-
-/***********************************************************************
-                METHOD DEFINITIONS
-************************************************************************/
-
 Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction)
     : jointNumber(jointNumber)
 {
