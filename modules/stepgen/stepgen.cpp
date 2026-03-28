@@ -42,10 +42,10 @@ void Stepgen::update()
     if (0 == toAdd)
         return;
 
-    int32_t stepNow = DDSaccumulator;                             // Save the current DDS accumulator value
-    DDSaccumulator += toAdd;                                      // Update the DDS accumulator with the new add value
-    stepNow ^= DDSaccumulator;                                    // Test for changes in the low half of the DDS accumulator
-    stepNow &= (1L << STEPBIT);                                         // Check for the step bit
+    int32_t stepNow = DDSaccumulator; // Save the current DDS accumulator value
+    DDSaccumulator += toAdd;          // Update the DDS accumulator with the new add value
+    stepNow ^= DDSaccumulator;        // Test for changes in the low half of the DDS accumulator
+    stepNow &= (1L << STEPBIT);       // Check for the step bit
     if (!stepNow)
         return;
 
