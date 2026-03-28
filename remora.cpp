@@ -100,7 +100,6 @@ enum State {
     ST_IDLE,
     ST_RUNNING,
     ST_RESET,
-    ST_WDRESET
 };
 
 uint8_t resetCnt;
@@ -513,10 +512,6 @@ void core1_entry()
                 }
 
                 currentState = ST_IDLE;
-                break;
-
-            case ST_WDRESET:
-                // force a reset
                 break;
         }
     }
