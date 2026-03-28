@@ -68,24 +68,22 @@ void Stepgen::makePulses()
     this->DDSaccumulator += this->DDSaddValue;                              // Update the DDS accumulator with the new add value
     stepNow ^= this->DDSaccumulator;                                        // Test for changes in the low half of the DDS accumulator
     stepNow &= (1L << this->stepBit);                                       // Check for the step bit
-    //this->rawCount = this->DDSaccumulator >> this->stepBit;                   // Update the position raw count
+    if (!stepNow)
+        return;
 
     bool isForward = (this->DDSaddValue > 0);
+    this->directionPin->set(isForward);                           // Set direction pin
+    this->stepPin->set(true);                                           // Raise step pin
 
-    if (stepNow)
+    if (isForward)
     {
-        this->directionPin->set(isForward);                           // Set direction pin
-        this->stepPin->set(true);                                           // Raise step pin
-        if (isForward)
-        {
-            ++this->rawCount;
-        }
-        else
-        {
-            --this->rawCount;
-        }
-        txData->jointFeedback[this->jointNumber] = this->rawCount;
+        ++this->rawCount;
     }
+    else
+    {
+        --this->rawCount;
+    }
+    txData->jointFeedback[this->jointNumber] = this->rawCount;
 }
 
 
