@@ -99,8 +99,6 @@ uint32_t servo_freq = PRU_SERVOFREQ;
 // boolean
 bool configError = false;
 
-uint8_t noDataCount;
-
 // pointers to objects with global scope
 pruThread* servoThread;
 pruThread* baseThread;
