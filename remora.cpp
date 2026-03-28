@@ -84,7 +84,6 @@ extern "C"
 #include "modules/module.h"
 #include "modules/blink/blink.h"
 #include "modules/comms/RemoraComms.h"
-#include "modules/debug/debug.h"
 #include "modules/stepgen/stepgen.h"
 #include "modules/digitalPin/digitalPin.h"
 
