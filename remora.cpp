@@ -687,22 +687,13 @@ void EthernetTasks()
 
 void udpServerInit(void)
 {
-    struct udp_pcb *upcb;
-    err_t err;
-
-    // UDP control block for data
-    upcb = udp_new();
-    err = udp_bind(upcb, &g_ip, 27181);  // 27181 is the server UDP port
-
-    /* 3. Set a receive callback for the upcb */
-    if(err == ERR_OK)
-    {
-        udp_recv(upcb, udp_data_callback, NULL);
-    }
-    else
+    struct udp_pcb *upcb = udp_new();
+    if (ERR_OK != udp_bind(upcb, &g_ip, 27181))  // 27181 is the server UDP port
     {
         udp_remove(upcb);
+        return;
     }
+    udp_recv(upcb, udp_data_callback, NULL);
 }
 
 
