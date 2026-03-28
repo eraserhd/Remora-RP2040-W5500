@@ -31,6 +31,12 @@ Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::str
 
 void Stepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
 {
+    if (!enable)
+    {
+        DDSaddValue = 0;
+        return;
+    }
+    DDSaddValue = frequencyCommand * (float)(1 << STEPBIT) / (float)threadFrequency;
 }
 
 void Stepgen::update()
@@ -40,29 +46,28 @@ void Stepgen::update()
     int32_t frequencyCmd = rxData->jointFreqCmd[this->jointNumber];
     frequencyCommand(base_freq, isEnabled, frequencyCmd);
 
-    if (!isEnabled)
+    int32_t toAdd = this->DDSaddValue;
+    if (0 == toAdd)
         return;
 
-    int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber]; // Get the latest frequency command via pointer to the data source
-    int32_t DDSaddValue = frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
-    int32_t stepNow = this->DDSaccumulator;                             // Save the current DDS accumulator value
-    this->DDSaccumulator += DDSaddValue;                                // Update the DDS accumulator with the new add value
-    stepNow ^= this->DDSaccumulator;                                    // Test for changes in the low half of the DDS accumulator
+    int32_t stepNow = DDSaccumulator;                             // Save the current DDS accumulator value
+    DDSaccumulator += toAdd;                                      // Update the DDS accumulator with the new add value
+    stepNow ^= DDSaccumulator;                                    // Test for changes in the low half of the DDS accumulator
     stepNow &= (1L << STEPBIT);                                         // Check for the step bit
     if (!stepNow)
         return;
 
-    bool isForward = (DDSaddValue > 0);
-    this->directionPin->set(isForward);                                 // Set direction pin
-    this->stepPin->set(true);                                           // Raise step pin
+    bool isForward = (toAdd > 0);
+    directionPin->set(isForward);
+    stepPin->set(true);
 
     if (isForward)
     {
-        ++this->rawCount;
+        ++rawCount;
     }
     else
     {
-        --this->rawCount;
+        --rawCount;
     }
 
     txData_t *txData = getCurrentTxBuffer(&txPingPongBuffer);
@@ -71,5 +76,5 @@ void Stepgen::update()
 
 void Stepgen::updatePost()
 {
-    this->stepPin->set(false);  // Reset step pin
+    stepPin->set(false);  // Reset step pin
 }
