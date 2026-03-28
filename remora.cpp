@@ -398,29 +398,6 @@ void loadModules()
 }
 
 
-void debugThreadHigh()
-{
-    printf("\n  Thread debugging.... \n\n");
-
-    Module* debugOnB = new Debug("GP06", 1);
-    baseThread->registerModule(debugOnB);
-
-    Module* debugOnS = new Debug("GP15", 1);
-    servoThread->registerModule(debugOnS);
-}
-
-
-void debugThreadLow()
-{
-    printf("\n  Thread debugging.... \n\n");
-
-    Module* debugOffB = new Debug("GP14", 0);
-    baseThread->registerModule(debugOffB);
-
-    Module* debugOffS = new Debug("GP15", 0);
-    servoThread->registerModule(debugOffS);
-}
-
 void core1_entry()
 {
     enum State currentState;
@@ -448,9 +425,7 @@ void core1_entry()
                 deserialiseJSON();
                 configThreads();
                 createThreads();
-                //debugThreadHigh();
                 loadModules();
-                //debugThreadLow();
 
                 currentState = ST_START;
                 break;
