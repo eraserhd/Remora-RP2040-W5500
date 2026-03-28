@@ -29,11 +29,17 @@ Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::str
     this->mask = 1 << this->jointNumber;
 }
 
+void Stepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
+{
+}
 
 void Stepgen::update()
 {
     rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
     bool isEnabled = ((rxData->jointEnable & this->mask) != 0);
+    int32_t frequencyCmd = rxData->jointFreqCmd[this->jointNumber];
+    frequencyCommand(base_freq, isEnabled, frequencyCmd);
+
     if (!isEnabled)
         return;
 

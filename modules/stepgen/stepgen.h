@@ -24,6 +24,8 @@ public:
 
     static Stepgen* load(JsonObject module);
 
+    void frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand);
+
     virtual void update(void);           // Module default interface
     virtual void updatePost(void);
 };
