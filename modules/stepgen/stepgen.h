@@ -42,7 +42,6 @@ class Stepgen : public Module
 
     virtual void update(void);           // Module default interface
     virtual void updatePost(void);
-    virtual void slowUpdate(void);
     void makePulses();
     void stopPulses();
     void setEnabled(bool);

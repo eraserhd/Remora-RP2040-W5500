@@ -42,8 +42,3 @@ void Blink::update(void)
         this->blinkCount = 0;
     }
 }
-
-void Blink::slowUpdate(void)
-{
-    return;
-}

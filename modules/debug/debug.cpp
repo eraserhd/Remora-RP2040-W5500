@@ -13,8 +13,3 @@ void Debug::update(void)
     value = !value;
     this->debugPin->set(value);
 }
-
-void Debug::slowUpdate(void)
-{
-    return;
-}

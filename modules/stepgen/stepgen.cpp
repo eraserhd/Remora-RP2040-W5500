@@ -55,11 +55,6 @@ void Stepgen::updatePost()
     this->stopPulses();
 }
 
-void Stepgen::slowUpdate()
-{
-    return;
-}
-
 void Stepgen::makePulses()
 {
     int32_t stepNow = 0;

@@ -21,7 +21,6 @@ class Debug : public Module
         Debug(std::string, bool);
 
         virtual void update(void);
-        virtual void slowUpdate(void);
 };
 
 #endif

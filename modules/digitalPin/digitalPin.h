@@ -26,8 +26,8 @@ private:
 
 public:
     DigitalPin(int, std::string, int, bool, int);
+
     virtual void update(void);
-    virtual void slowUpdate(void);
 };
 
 #endif

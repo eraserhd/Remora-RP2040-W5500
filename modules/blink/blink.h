@@ -24,7 +24,6 @@ public:
     Blink(std::string, uint32_t, uint32_t);
 
     virtual void update(void);
-    virtual void slowUpdate(void);
 };
 
 #endif

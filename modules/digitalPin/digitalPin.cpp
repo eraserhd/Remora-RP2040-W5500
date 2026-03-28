@@ -117,8 +117,3 @@ void DigitalPin::update()
         this->pin->set(pinState);           // simple conversion to boolean
     }
 }
-
-void DigitalPin::slowUpdate()
-{
-    return;
-}
