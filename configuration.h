@@ -8,7 +8,6 @@
 #define SERVO_SLICE         1               // RP2040 PWM Slice used by the Servo thread
 
 #define STEPBIT     		22            	// bit location in DDS accum
-#define STEP_MASK   		(1L<<STEPBIT)
 
 #define JSON_BUFF_SIZE	    10000			// Jason dynamic buffer size
 
