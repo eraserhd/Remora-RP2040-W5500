@@ -422,11 +422,7 @@ void core1_entry()
         printf("\n## Entering RESET state\n");
 
         rxData_t* pruRxData = getCurrentRxBuffer(&rxPingPongBuffer);
-        int n = sizeof(pruRxData->rxBuffer);
-        while(n-- > 0)
-        {
-            pruRxData->rxBuffer[n] = 0;
-        }
+        memset(pruRxData->rxBuffer, 0, sizeof(pruRxData->rxBuffer));
     }
 }
 
