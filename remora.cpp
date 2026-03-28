@@ -627,8 +627,6 @@ void reply(struct udp_pcb *upcb, const ip_addr_t *addr, u16_t port, char* data, 
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
     int txlen = 0;
-    int n;
-    uint32_t status;
 
     //received data from host needs to go into the inactive buffer
     rxData_t* rxBuffer = getAltRxBuffer(&rxPingPongBuffer);
