@@ -14,8 +14,7 @@ void createStepgen(void);
 
 class Stepgen : public Module
 {
-  private:
-
+private:
     int jointNumber;                // LinuxCNC joint number
     int mask;
 
@@ -23,12 +22,10 @@ class Stepgen : public Module
     int32_t DDSaccumulator;         // Direct Digital Synthesis (DDS) accumulator
     float   frequencyScale;           // frequency scale
     int32_t stepBit;                // position in the DDS accumulator that triggers a step pulse
-
-  public:
-
-    Stepgen(int32_t, int, std::string, std::string, int);  // constructor
-
     Pin *stepPin, *directionPin;        // class object members - Pin objects
+
+public:
+    Stepgen(int32_t, int, std::string, std::string, int);  // constructor
 
     virtual void update(void);           // Module default interface
     virtual void updatePost(void);
