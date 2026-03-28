@@ -8,13 +8,10 @@
 #include "../../drivers/pin/pin.h"
 
 
-class DigitalPin : public Module
+class DigitalPin
 {
 private:
-    int bitNumber;              // location in the data source
     bool invert;
-    int mask;
-
     int mode;
     int modifier;
     std::string portAndPin;
@@ -22,7 +19,7 @@ private:
     Pin *pin;
 
 public:
-    DigitalPin(int, std::string, int, bool, int);
+    DigitalPin(int, std::string, bool, int);
     static DigitalPin *load(JsonObject module);
 
     bool read() const;

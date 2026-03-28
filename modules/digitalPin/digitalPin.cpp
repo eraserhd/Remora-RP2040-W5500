@@ -13,7 +13,6 @@ DigitalPin *DigitalPin::load(JsonObject module)
     const char* mode = module["Mode"];
     const char* invert = module["Invert"];
     const char* modifier = module["Modifier"];
-    int dataBit = module["Data Bit"];
 
     int mod;
     bool inv;
@@ -45,10 +44,10 @@ DigitalPin *DigitalPin::load(JsonObject module)
     printf("Make Digital %s at pin %s\n", mode, pin);
 
     if (!strcmp(mode,"Output"))
-        return new DigitalPin(1, pin, dataBit, inv, mod);
+        return new DigitalPin(1, pin, inv, mod);
 
     if (!strcmp(mode,"Input"))
-        return new DigitalPin(0, pin, dataBit, inv, mod);
+        return new DigitalPin(0, pin, inv, mod);
 
     printf("Error - incorrectly defined Digital Pin\n");
     return NULL;
@@ -59,15 +58,14 @@ DigitalPin *DigitalPin::load(JsonObject module)
                 METHOD DEFINITIONS
 ************************************************************************/
 
-DigitalPin::DigitalPin(int mode, std::string portAndPin, int bitNumber, bool invert, int modifier) :
-    mode(mode),
-    portAndPin(portAndPin),
-    bitNumber(bitNumber),
-    invert(invert),
-    modifier(modifier)
+// Input mode 0x0, Output 0x1
+DigitalPin::DigitalPin(int mode, std::string portAndPin, bool invert, int modifier)
+    : mode(mode)
+    , portAndPin(portAndPin)
+    , invert(invert)
+    , modifier(modifier)
+    , pin(new Pin(this->portAndPin, this->mode, this->modifier))
 {
-    this->pin = new Pin(this->portAndPin, this->mode, this->modifier);      // Input 0x0, Output 0x1
-    this->mask = 1 << this->bitNumber;
 }
 
 bool DigitalPin::read() const
