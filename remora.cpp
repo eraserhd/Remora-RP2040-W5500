@@ -104,6 +104,7 @@ pruThread* baseThread;
 RemoraComms* comms;
 RxPingPongBuffer rxPingPongBuffer;
 TxPingPongBuffer txPingPongBuffer;
+Stepgen *stepGenerators[JOINTS] = {};
 
 // Json config file stuff
 const char defaultConfig[] = DEFAULT_CONFIG;
@@ -358,7 +359,13 @@ void loadModules()
 
             if (!strcmp(type,"Stepgen"))
             {
-                Stepgen::load(module);
+                int joint = module["Joint Number"];
+                if (NULL != stepGenerators[joint])
+                {
+                    printf("ERROR!  Joint Number %d specified more than once.\n", joint);
+                    configError = true;
+                }
+                stepGenerators[joint] = Stepgen::load(module);
             }
          }
         else if (!strcmp(thread,"Servo"))
@@ -652,6 +659,15 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
         txBuffer->header = PRU_ACKNOWLEDGE;
         txlen = BUFFER_SIZE;
         comms->dataReceived();
+
+        for (int i = 0; i < JOINTS; i++)
+        {
+            if (NULL == stepGenerators[i])
+                continue;
+            bool isEnabled = (rxBuffer->jointEnable & (1 << i)) != 0;
+            int32_t frequencyCmd = rxBuffer->jointFreqCmd[i];
+            stepGenerators[i]->frequencyCommand(base_freq, isEnabled, frequencyCmd);
+        }
         break;
     }
 

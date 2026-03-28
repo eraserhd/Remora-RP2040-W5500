@@ -41,11 +41,6 @@ void Stepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t fre
 
 void Stepgen::update()
 {
-    rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
-    bool isEnabled = ((rxData->jointEnable & this->mask) != 0);
-    int32_t frequencyCmd = rxData->jointFreqCmd[this->jointNumber];
-    frequencyCommand(base_freq, isEnabled, frequencyCmd);
-
     int32_t toAdd = this->DDSaddValue;
     if (0 == toAdd)
         return;
