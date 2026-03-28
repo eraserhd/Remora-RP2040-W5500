@@ -25,7 +25,6 @@ Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::str
     this->directionPin = new Pin(direction, OUTPUT);
     this->DDSaccumulator = 0;
     this->rawCount = 0;
-    this->frequencyScale = (float)(1 << STEPBIT) / (float)threadFreq;
     this->mask = 1 << this->jointNumber;
 }
 
