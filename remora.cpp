@@ -135,7 +135,6 @@ typedef struct
 
 volatile bool newJson;
 uint32_t crc32;
-FILE *jsonFile;
 string strJson;
 DynamicJsonDocument doc(JSON_BUFF_SIZE);
 JsonObject thread;
