@@ -102,7 +102,6 @@ bool configError = false;
 pruThread* servoThread;
 pruThread* baseThread;
 RemoraComms* comms;
-TxPingPongBuffer txPingPongBuffer;
 Stepgen *stepGenerators[JOINTS] = {};
 DigitalPin *inputs[sizeof(txData_t::inputs)*8] = {};
 DigitalPin *outputs[sizeof(rxData_t::outputs)*8] = {};
@@ -437,18 +436,6 @@ void core1_entry()
     }
 }
 
-void initTxPingPongBuffer(TxPingPongBuffer* buffer) {
-    buffer->currentTxBuffer = 0;
-}
-
-void swapTxBuffers(TxPingPongBuffer* buffer) {
-    buffer->currentTxBuffer = 1 - buffer->currentTxBuffer;
-}
-
-txData_t* getCurrentTxBuffer(TxPingPongBuffer* buffer) {
-    return &buffer->txBuffers[buffer->currentTxBuffer];
-}
-
 int main()
 {
     // Network configuration
@@ -471,8 +458,6 @@ int main()
     EthernetInit();
     udpServerInit();
     IAP_tftpd_init();
-
-    initTxPingPongBuffer(&txPingPongBuffer);
 
     // launch main Remora code on the second core
     multicore_launch_core1(core1_entry);
@@ -616,48 +601,34 @@ void reply(struct udp_pcb *upcb, const ip_addr_t *addr, u16_t port, char* data, 
 
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
-    int txlen = 0;
-
     static rxData_t rxBuffer;
     memcpy(&rxBuffer.rxBuffer, p->payload, p->len);
     pbuf_free(p);
 
-    //data sent to host needs to come from the active buffer
-    txData_t* txBuffer = getCurrentTxBuffer(&txPingPongBuffer);
-
     switch (rxBuffer.header)
     {
     case PRU_READ:
-        //if it is a read, need to swap the TX buffer over but the RX buffer needs to remain unchanged.
-        //feedback data will now go into the alternate buffer
-        while (baseThread->semaphore);
-            baseThread->semaphore = true;
-        //don't need to wait for the servo thread.
-
-        swapTxBuffers(&txPingPongBuffer);
-
-        baseThread->semaphore = false;
-
-        //txBuffer pointer is now directed at the 'old' data for transmission
-        txBuffer->header = PRU_DATA;
-        txlen = BUFFER_SIZE;
-        comms->dataReceived();
-
-        for (int i = 0; i < JOINTS; i++)
         {
-            if (NULL == stepGenerators[i])
-                continue;
-            txBuffer->jointFeedback[i] = stepGenerators[i]->jointFeedback();
-        }
-        for (int i = 0; i < sizeof(inputs)/sizeof(inputs[0]); ++i)
-        {
-            if (NULL == inputs[i])
-                continue;
-            if (inputs[i]->read())
-                txBuffer->inputs |= (1 << i);
-        }
+            txData_t txBuffer = {};
+            txBuffer.header = PRU_DATA;
+            comms->dataReceived();
 
-        reply(upcb, addr, port, (char*)&txBuffer->txBuffer, txlen);
+            for (int i = 0; i < JOINTS; i++)
+            {
+                if (NULL == stepGenerators[i])
+                    continue;
+                txBuffer.jointFeedback[i] = stepGenerators[i]->jointFeedback();
+            }
+            for (int i = 0; i < sizeof(inputs)/sizeof(inputs[0]); ++i)
+            {
+                if (NULL == inputs[i])
+                    continue;
+                if (inputs[i]->read())
+                    txBuffer.inputs |= (1 << i);
+            }
+
+            reply(upcb, addr, port, (char*)&txBuffer.txBuffer, BUFFER_SIZE);
+        }
         break;
 
     case PRU_WRITE:

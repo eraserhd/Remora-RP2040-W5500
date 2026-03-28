@@ -39,14 +39,5 @@ typedef union
     };
 } txData_t;
 
-typedef struct {
-    txData_t txBuffers[2]; // Two buffers for txData_t
-    int currentTxBuffer;   // Index of the current txData_t buffer
-} TxPingPongBuffer;
-
-extern void initTxPingPongBuffer(TxPingPongBuffer* buffer);
-extern void swapTxBuffers(TxPingPongBuffer* buffer);
-extern txData_t* getCurrentTxBuffer(TxPingPongBuffer* buffer);
-
 #pragma pack(pop)
 #endif
