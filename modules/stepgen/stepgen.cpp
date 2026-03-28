@@ -37,8 +37,6 @@ Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::str
     this->rawCount = 0;
     this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;
     this->mask = 1 << this->jointNumber;
-    this->isEnabled = false;
-    this->isForward = false;
 }
 
 
@@ -72,20 +70,13 @@ void Stepgen::makePulses()
     stepNow &= (1L << this->stepBit);                                       // Check for the step bit
     //this->rawCount = this->DDSaccumulator >> this->stepBit;                   // Update the position raw count
 
-    if (this->DDSaddValue > 0)                                              // The sign of the DDS add value indicates the desired direction
-    {
-        this->isForward = true;
-    }
-    else
-    {
-        this->isForward = false;
-    }
+    bool isForward = (this->DDSaddValue > 0);
 
     if (stepNow)
     {
-        this->directionPin->set(this->isForward);                           // Set direction pin
+        this->directionPin->set(isForward);                           // Set direction pin
         this->stepPin->set(true);                                           // Raise step pin
-        if (this->isForward)
+        if (isForward)
         {
             ++this->rawCount;
         }
