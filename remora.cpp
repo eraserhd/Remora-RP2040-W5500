@@ -670,15 +670,11 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
         while (baseThread->semaphore);
             baseThread->semaphore = true;
         //don't need to wait for the servo thread.
-        //feedback data will now go into the alternate buffer
-        swapTxBuffers(&txPingPongBuffer);
+
         //frequency command will now come from the new data
         swapRxBuffers(&rxPingPongBuffer);
         baseThread->semaphore = false;
 
-        //txBuffer pointer is now directed at the 'old' data for transmission
-        txBuffer->header = PRU_ACKNOWLEDGE;
-        txlen = sizeof(txBuffer->header);
         comms->dataReceived();
 
         for (int i = 0; i < JOINTS; i++)
@@ -690,7 +686,8 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
             stepGenerators[i]->frequencyCommand(base_freq, isEnabled, frequencyCmd);
         }
 
-        reply(upcb, addr, port, (char*)&txBuffer->txBuffer, txlen);
+        int32_t header = PRU_ACKNOWLEDGE;
+        reply(upcb, addr, port, (char*)&header, sizeof(header));
         break;
     }
 }
