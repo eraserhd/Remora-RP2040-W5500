@@ -105,6 +105,8 @@ RemoraComms* comms;
 RxPingPongBuffer rxPingPongBuffer;
 TxPingPongBuffer txPingPongBuffer;
 Stepgen *stepGenerators[JOINTS] = {};
+DigitalPin *inputs[sizeof(txData_t::inputs)*8] = {};
+DigitalPin *outputs[sizeof(rxData_t::outputs)*8] = {};
 
 // Json config file stuff
 const char defaultConfig[] = DEFAULT_CONFIG;
@@ -376,7 +378,12 @@ void loadModules()
             }
             else if (!strcmp(type,"Digital Pin"))
             {
-                createDigitalPin();
+                const char *mode = module["Mode"];
+                int dataBit = module["Data Bit"];
+                if (!strcmp(mode, "Input"))
+                    inputs[dataBit] = DigitalPin::load(module);
+                else if (!strcmp(mode, "Output"))
+                    outputs[dataBit] = DigitalPin::load(module);
             }
             else if (!strcmp(type,"Spindle PWM"))
             {

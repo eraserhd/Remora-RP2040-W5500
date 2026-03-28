@@ -4,7 +4,7 @@
                 MODULE CONFIGURATION AND CREATION FROM JSON     
 ************************************************************************/
 
-void createDigitalPin()
+DigitalPin *DigitalPin::load(JsonObject module)
 {
     const char* comment = module["Comment"];
     printf("\n%s\n",comment);
@@ -46,19 +46,20 @@ void createDigitalPin()
 
     if (!strcmp(mode,"Output"))
     {
-        Module* digitalPin = new DigitalPin(1, pin, dataBit, inv, mod);
+        DigitalPin* digitalPin = new DigitalPin(1, pin, dataBit, inv, mod);
         servoThread->registerModule(digitalPin);
-    }
-    else if (!strcmp(mode,"Input"))
-    {
-        Module* digitalPin = new DigitalPin(0, pin, dataBit, inv, mod);
-        servoThread->registerModule(digitalPin);
-    }
-    else
-    {
-        printf("Error - incorrectly defined Digital Pin\n");
+        return digitalPin;
     }
 
+    if (!strcmp(mode,"Input"))
+    {
+        DigitalPin* digitalPin = new DigitalPin(0, pin, dataBit, inv, mod);
+        servoThread->registerModule(digitalPin);
+        return digitalPin;
+    }
+
+    printf("Error - incorrectly defined Digital Pin\n");
+    return NULL;
 }
 
 

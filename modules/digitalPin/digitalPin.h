@@ -8,8 +8,6 @@
 #include "../../drivers/pin/pin.h"
 
 
-void createDigitalPin(void);
-
 class DigitalPin : public Module
 {
 private:
@@ -25,6 +23,7 @@ private:
 
 public:
     DigitalPin(int, std::string, int, bool, int);
+    static DigitalPin *load(JsonObject module);
 
     bool read() const;
     void write(bool pinState) const;
