@@ -642,6 +642,13 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
         txBuffer->header = PRU_DATA;
         txlen = BUFFER_SIZE;
         comms->dataReceived();
+
+        for (int i = 0; i < JOINTS; i++)
+        {
+            if (NULL == stepGenerators[i])
+                continue;
+            txBuffer->jointFeedback[i] = stepGenerators[i]->jointFeedback();
+        }
         break;
 
     case PRU_WRITE:

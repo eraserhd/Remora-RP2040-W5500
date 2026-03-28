@@ -60,9 +60,6 @@ void Stepgen::update()
         ++stepperPosition;
     else
         --stepperPosition;
-
-    txData_t *txData = getCurrentTxBuffer(&txPingPongBuffer);
-    txData->jointFeedback[this->jointNumber] = this->stepperPosition;
 }
 
 void Stepgen::updatePost()
