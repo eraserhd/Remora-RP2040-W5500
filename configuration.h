@@ -1,31 +1,31 @@
 #ifndef CONFIGURATION_H
 #define CONFIGURATION_H
 
-#define PRU_BASEFREQ    	40000           // PRU Base thread ISR update frequency (hz)
+#define PRU_BASEFREQ        40000           // PRU Base thread ISR update frequency (hz)
 #define PRU_SERVOFREQ       1000            // PRU Servo thread ISR update freqency (hz)
 
 #define BASE_SLICE          0               // RP2040 PWM Slice used by the Base thread
 #define SERVO_SLICE         1               // RP2040 PWM Slice used by the Servo thread
 
-#define STEPBIT     		22            	// bit location in DDS accum
+#define STEPBIT             22              // bit location in DDS accum
 
-#define JSON_BUFF_SIZE	    10000			// Jason dynamic buffer size
+#define JSON_BUFF_SIZE      10000           // Jason dynamic buffer size
 
-#define JOINTS			    6				// Number of joints - set this the same as LinuxCNC HAL compenent. Max 8 joints
-#define VARIABLES           4             	// Number of command values - set this the same as the LinuxCNC HAL compenent
+#define JOINTS              6               // Number of joints - set this the same as LinuxCNC HAL compenent. Max 8 joints
+#define VARIABLES           4               // Number of command values - set this the same as the LinuxCNC HAL compenent
 
-#define PRU_DATA		    0x64617461 	    // "data" SPI payload
+#define PRU_DATA            0x64617461      // "data" SPI payload
 #define PRU_READ            0x72656164      // "read" SPI payload
 #define PRU_WRITE           0x77726974      // "writ" SPI payload
 #define PRU_ESTOP           0x65737470      // "estp" SPI payload
-#define PRU_ACKNOWLEDGE		0x61636b6e	    // "ackn" payload
-#define PRU_ERR		        0x6572726f	    // "erro" payload
+#define PRU_ACKNOWLEDGE     0x61636b6e      // "ackn" payload
+#define PRU_ERR             0x6572726f      // "erro" payload
 
-#define DATA_ERR_MAX         40
+#define DATA_ERR_MAX        40
 
 
 // Data buffer configuration
-#define BUFFER_SIZE 		68            	// Size of recieve buffer - same as HAL component, 64
+#define BUFFER_SIZE         68              // Size of recieve buffer - same as HAL component, 64
 
 #define PLL_SYS_KHZ (125 * 1000)    // 133MHz
 #define SOCKET_MACRAW 0
@@ -39,8 +39,8 @@
 // Use the last 64kB block of QSPI memory for persistant storage, 32kB for the upload location and the next 32kB for storage
 
 // Location for storage of JSON config file in Flash
-#define JSON_UPLOAD_ADDRESS				PICO_FLASH_SIZE_BYTES - ((2 * 32)/4) * FLASH_SECTOR_SIZE
-#define JSON_STORAGE_ADDRESS 			PICO_FLASH_SIZE_BYTES - (32/4) * FLASH_SECTOR_SIZE
+#define JSON_UPLOAD_ADDRESS             PICO_FLASH_SIZE_BYTES - ((2 * 32)/4) * FLASH_SECTOR_SIZE
+#define JSON_STORAGE_ADDRESS            PICO_FLASH_SIZE_BYTES - (32/4) * FLASH_SECTOR_SIZE
 
 #if (DEVICE_BOARD_NAME == W55RP20_EVB_PICO)
 #define DEFAULT_BLINKY_GPIO "GP19"
