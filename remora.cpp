@@ -664,7 +664,7 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 
         //txBuffer pointer is now directed at the 'old' data for transmission
         txBuffer->header = PRU_ACKNOWLEDGE;
-        txlen = BUFFER_SIZE;
+        txlen = sizeof(txBuffer->header);
         comms->dataReceived();
 
         for (int i = 0; i < JOINTS; i++)
