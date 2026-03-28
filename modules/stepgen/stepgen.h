@@ -8,10 +8,6 @@
 #include "../module.h"
 #include "../../drivers/pin/pin.h"
 
-
-
-void createStepgen(void);
-
 class Stepgen : public Module
 {
 private:
@@ -25,6 +21,8 @@ private:
 
 public:
     Stepgen(int32_t, int, std::string, std::string);
+
+    static Stepgen* load(JsonObject module);
 
     virtual void update(void);           // Module default interface
     virtual void updatePost(void);

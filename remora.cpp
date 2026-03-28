@@ -358,7 +358,7 @@ void loadModules()
 
             if (!strcmp(type,"Stepgen"))
             {
-                createStepgen();
+                Stepgen::load(module);
             }
          }
         else if (!strcmp(thread,"Servo"))

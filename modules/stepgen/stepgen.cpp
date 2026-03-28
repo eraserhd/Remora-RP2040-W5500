@@ -2,12 +2,7 @@
 #include "stepgen.h"
 #include "../remora.h"
 
-
-/***********************************************************************
-                MODULE CONFIGURATION AND CREATION FROM JSON     
-************************************************************************/
-
-void createStepgen()
+Stepgen *Stepgen::load(JsonObject module)
 {
     const char* comment = module["Comment"];
     printf("\n%s\n",comment);
@@ -17,9 +12,10 @@ void createStepgen()
     const char* dir = module["Direction Pin"];
 
     // create the step generator, register it in the thread
-    Module* stepgen = new Stepgen(base_freq, joint, step, dir);
+    Stepgen* stepgen = new Stepgen(base_freq, joint, step, dir);
     baseThread->registerModule(stepgen);
     baseThread->registerModulePost(stepgen);
+    return stepgen;
 }
 
 
