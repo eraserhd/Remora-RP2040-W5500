@@ -26,8 +26,6 @@ public:
 
     virtual void update(void);           // Module default interface
     virtual void updatePost(void);
-    void makePulses();
-    void stopPulses();
 };
 
 

@@ -32,17 +32,6 @@ Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::str
 
 void Stepgen::update()
 {
-    // Use the standard Module interface to run makePulses()
-    this->makePulses();
-}
-
-void Stepgen::updatePost()
-{
-    this->stopPulses();
-}
-
-void Stepgen::makePulses()
-{
     rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
     bool isEnabled = ((rxData->jointEnable & this->mask) != 0);
     if (!isEnabled)
@@ -74,8 +63,7 @@ void Stepgen::makePulses()
     txData->jointFeedback[this->jointNumber] = this->rawCount;
 }
 
-
-void Stepgen::stopPulses()
+void Stepgen::updatePost()
 {
     this->stepPin->set(false);  // Reset step pin
 }
