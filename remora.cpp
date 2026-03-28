@@ -102,7 +102,6 @@ bool configError = false;
 pruThread* servoThread;
 pruThread* baseThread;
 RemoraComms* comms;
-RxPingPongBuffer rxPingPongBuffer;
 TxPingPongBuffer txPingPongBuffer;
 Stepgen *stepGenerators[JOINTS] = {};
 DigitalPin *inputs[sizeof(txData_t::inputs)*8] = {};
@@ -438,32 +437,16 @@ void core1_entry()
     }
 }
 
-void initRxPingPongBuffer(RxPingPongBuffer* buffer) {
-    buffer->currentRxBuffer = 0;
-}
-
 void initTxPingPongBuffer(TxPingPongBuffer* buffer) {
     buffer->currentTxBuffer = 0;
-}
-
-void swapRxBuffers(RxPingPongBuffer* buffer) {
-    buffer->currentRxBuffer = 1 - buffer->currentRxBuffer;
 }
 
 void swapTxBuffers(TxPingPongBuffer* buffer) {
     buffer->currentTxBuffer = 1 - buffer->currentTxBuffer;
 }
 
-rxData_t* getCurrentRxBuffer(RxPingPongBuffer* buffer) {
-    return &buffer->rxBuffers[buffer->currentRxBuffer];
-}
-
 txData_t* getCurrentTxBuffer(TxPingPongBuffer* buffer) {
     return &buffer->txBuffers[buffer->currentTxBuffer];
-}
-
-static rxData_t* getAltRxBuffer(RxPingPongBuffer* buffer) {
-    return &buffer->rxBuffers[1 - buffer->currentRxBuffer];
 }
 
 int main()
@@ -489,7 +472,6 @@ int main()
     udpServerInit();
     IAP_tftpd_init();
 
-    initRxPingPongBuffer(&rxPingPongBuffer);
     initTxPingPongBuffer(&txPingPongBuffer);
 
     // launch main Remora code on the second core
@@ -636,15 +618,14 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 {
     int txlen = 0;
 
-    //received data from host needs to go into the inactive buffer
-    rxData_t* rxBuffer = getAltRxBuffer(&rxPingPongBuffer);
-    memcpy(&rxBuffer->rxBuffer, p->payload, p->len);
+    static rxData_t rxBuffer;
+    memcpy(&rxBuffer.rxBuffer, p->payload, p->len);
     pbuf_free(p);
 
     //data sent to host needs to come from the active buffer
     txData_t* txBuffer = getCurrentTxBuffer(&txPingPongBuffer);
 
-    switch (rxBuffer->header)
+    switch (rxBuffer.header)
     {
     case PRU_READ:
         //if it is a read, need to swap the TX buffer over but the RX buffer needs to remain unchanged.
@@ -673,30 +654,21 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
         break;
 
     case PRU_WRITE:
-        //if it is a write, then both the RX and TX buffers need to be changed.
-        while (baseThread->semaphore);
-            baseThread->semaphore = true;
-        //don't need to wait for the servo thread.
-
-        //frequency command will now come from the new data
-        swapRxBuffers(&rxPingPongBuffer);
-        baseThread->semaphore = false;
-
         comms->dataReceived();
 
         for (int i = 0; i < JOINTS; i++)
         {
             if (NULL == stepGenerators[i])
                 continue;
-            bool isEnabled = (rxBuffer->jointEnable & (1 << i)) != 0;
-            int32_t frequencyCmd = rxBuffer->jointFreqCmd[i];
+            bool isEnabled = (rxBuffer.jointEnable & (1 << i)) != 0;
+            int32_t frequencyCmd = rxBuffer.jointFreqCmd[i];
             stepGenerators[i]->frequencyCommand(base_freq, isEnabled, frequencyCmd);
         }
         for (int i = 0; i < sizeof(outputs)/sizeof(outputs[0]); ++i)
         {
             if (NULL == outputs[i])
                 continue;
-            outputs[i]->write(rxBuffer->outputs & (1 << i));
+            outputs[i]->write(rxBuffer.outputs & (1 << i));
         }
 
         int32_t header = PRU_ACKNOWLEDGE;

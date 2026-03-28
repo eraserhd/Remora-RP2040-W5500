@@ -19,7 +19,6 @@ extern pruThread* servoThread;
 
 // unions for RX and TX data pointers that are used by the PRU threads
 
-extern RxPingPongBuffer rxPingPongBuffer;
 extern TxPingPongBuffer txPingPongBuffer;
 
 #endif
