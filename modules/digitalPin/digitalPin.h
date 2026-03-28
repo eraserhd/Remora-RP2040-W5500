@@ -23,8 +23,6 @@ public:
 
     bool read() const;
     void write(bool pinState) const;
-
-    virtual void update(void);
 };
 
 #endif

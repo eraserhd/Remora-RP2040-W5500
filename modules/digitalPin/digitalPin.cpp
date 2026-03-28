@@ -86,7 +86,3 @@ void DigitalPin::write(bool pinState) const
     }
 	pin->set(pinState);
 }
-
-void DigitalPin::update()
-{
-}
