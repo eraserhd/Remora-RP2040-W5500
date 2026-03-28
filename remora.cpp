@@ -93,21 +93,11 @@ extern "C"
 *                STRUCTURES AND GLOBAL VARIABLES                       *
 ************************************************************************/
 
-// state machine
-enum State {
-    ST_SETUP = 0,
-    ST_START,
-    ST_IDLE,
-    ST_RUNNING,
-    ST_RESET,
-};
-
 uint32_t base_freq = PRU_BASEFREQ;
 uint32_t servo_freq = PRU_SERVOFREQ;
 
 // boolean
 bool configError = false;
-bool threadsRunning = false;
 
 uint8_t noDataCount;
 
@@ -396,123 +386,50 @@ void loadModules()
 
 void core1_entry()
 {
-    enum State currentState;
-    enum State prevState;
-
-    rxData_t* pruRxData;
-
-    currentState = ST_SETUP;
-    prevState = ST_RESET;
-
     printf("\nRemora for RP2040 starting (core1)...\n\r");
+    printf("\n## Entering SETUP state\n\n");
 
-    while (1)
+    jsonFromFlash();
+    deserialiseJSON();
+    configThreads();
+    createThreads();
+    loadModules();
+
+    printf("\n## Entering START state\n");
+
+    // Start the threads
+    printf("\nStarting the BASE thread\n");
+    baseThread->startThread();
+
+    printf("\nStarting the SERVO thread\n");
+    servoThread->startThread();
+
+    for (;;)
     {
-        switch(currentState){
-            case ST_SETUP:
-                // do setup tasks
-                if (currentState != prevState)
-                {
-                    printf("\n## Entering SETUP state\n\n");
-                }
-                prevState = currentState;
 
-                jsonFromFlash();
-                deserialiseJSON();
-                configThreads();
-                createThreads();
-                loadModules();
+        printf("\n## Entering IDLE state\n");
+        do
+        {
+            servoThread->run();
+        }
+        while (!comms->getStatus());
 
-                currentState = ST_START;
-                break;
+        printf("\n## Entering RUNNING state\n");
+        do
+        {
+            servoThread->run();
+        }
+        while (comms->getStatus());
 
-            case ST_START:
-                // do start tasks
-                if (currentState != prevState)
-                {
-                    printf("\n## Entering START state\n");
-                }
-                prevState = currentState;
+        printf("\n## Entering RESET state\n");
 
-                if (!threadsRunning)
-                {
-                    // Start the threads
-                    printf("\nStarting the BASE thread\n");
-                    baseThread->startThread();
-
-                    printf("\nStarting the SERVO thread\n");
-                    servoThread->startThread();
-
-                    threadsRunning = true;
-                }
-
-                currentState = ST_IDLE;
-
-                break;
-
-            case ST_IDLE:
-                // do something when idle
-                if (currentState != prevState)
-                {
-                    printf("\n## Entering IDLE state\n");
-                }
-                prevState = currentState;
-                //servo thread is run outside of interrupt context.
-                servoThread->run();
-
-                //wait for data before changing to running state
-
-                if (comms->getStatus())
-                {
-                    currentState = ST_RUNNING;
-                }
-
-                break;
-
-            case ST_RUNNING:
-                // do running tasks
-                if (currentState != prevState)
-                {
-                    printf("\n## Entering RUNNING state\n");
-                }
-
-                prevState = currentState;
-                //servo thread is run outside of interrupt context.
-                servoThread->run();
-
-                if (comms->getStatus() == false)
-                {
-                    currentState = ST_RESET;
-                }
-
-                break;
-
-            case ST_RESET:
-                // do reset tasks
-                if (currentState != prevState)
-                {
-                    printf("\n## Entering RESET state\n");
-                }
-                prevState = currentState;
-
-                // set all of the rxData buffer to 0
-                // rxData.rxBuffer is volatile so need to do this the long way. memset cannot be used for volatile
-                pruRxData = getCurrentRxBuffer(&rxPingPongBuffer);
-
-                printf("   Resetting rxBuffer\n");
-                {
-                    int n = sizeof(pruRxData->rxBuffer);
-                    while(n-- > 0)
-                    {
-                        pruRxData->rxBuffer[n] = 0;
-                    }
-                }
-
-                currentState = ST_IDLE;
-                break;
+        rxData_t* pruRxData = getCurrentRxBuffer(&rxPingPongBuffer);
+        int n = sizeof(pruRxData->rxBuffer);
+        while(n-- > 0)
+        {
+            pruRxData->rxBuffer[n] = 0;
         }
     }
-
 }
 
 void initRxPingPongBuffer(RxPingPongBuffer* buffer) {
@@ -654,32 +571,31 @@ void EthernetInit()
 void EthernetTasks()
 {
     getsockopt(SOCKET_MACRAW, SO_RECVBUF, &pack_len);
+    if (0 == pack_len)
+        return;
 
-    if (pack_len > 0)
+    pack_len = recv_lwip(SOCKET_MACRAW, (uint8_t *)pack, pack_len);
+
+    if (pack_len)
     {
-        pack_len = recv_lwip(SOCKET_MACRAW, (uint8_t *)pack, pack_len);
+        p = pbuf_alloc(PBUF_RAW, pack_len, PBUF_POOL);
+        pbuf_take(p, pack, pack_len);
+        free(pack);
 
-        if (pack_len)
+        pack = static_cast<uint8_t *>(malloc(ETHERNET_MTU));
+    }
+    else
+    {
+        printf(" No packet received\n");
+    }
+
+    if (pack_len && p != NULL)
+    {
+        LINK_STATS_INC(link.recv);
+
+        if (g_netif.input(p, &g_netif) != ERR_OK)
         {
-            p = pbuf_alloc(PBUF_RAW, pack_len, PBUF_POOL);
-            pbuf_take(p, pack, pack_len);
-            free(pack);
-
-            pack = static_cast<uint8_t *>(malloc(ETHERNET_MTU));
-        }
-        else
-        {
-            printf(" No packet received\n");
-        }
-
-        if (pack_len && p != NULL)
-        {
-            LINK_STATS_INC(link.recv);
-
-            if (g_netif.input(p, &g_netif) != ERR_OK)
-            {
-                pbuf_free(p);
-            }
+            pbuf_free(p);
         }
     }
 }
