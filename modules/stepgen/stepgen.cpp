@@ -17,7 +17,7 @@ void createStepgen()
     const char* dir = module["Direction Pin"];
 
     // create the step generator, register it in the thread
-    Module* stepgen = new Stepgen(base_freq, joint, step, dir, STEPBIT);
+    Module* stepgen = new Stepgen(base_freq, joint, step, dir);
     baseThread->registerModule(stepgen);
     baseThread->registerModulePost(stepgen);
 }
@@ -27,15 +27,14 @@ void createStepgen()
                 METHOD DEFINITIONS
 ************************************************************************/
 
-Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction, int stepBit) :
-    jointNumber(jointNumber),
-    stepBit(stepBit)
+Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction)
+    : jointNumber(jointNumber)
 {
     this->stepPin = new Pin(step, OUTPUT);
     this->directionPin = new Pin(direction, OUTPUT);
     this->DDSaccumulator = 0;
     this->rawCount = 0;
-    this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;
+    this->frequencyScale = (float)(1 << STEPBIT) / (float)threadFreq;
     this->mask = 1 << this->jointNumber;
 }
 
@@ -58,17 +57,17 @@ void Stepgen::makePulses()
     if (!isEnabled)
         return;
 
-    int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];             // Get the latest frequency command via pointer to the data source
+    int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber]; // Get the latest frequency command via pointer to the data source
     int32_t DDSaddValue = frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
-    int32_t stepNow = this->DDSaccumulator;                                         // Save the current DDS accumulator value
-    this->DDSaccumulator += DDSaddValue;                              // Update the DDS accumulator with the new add value
-    stepNow ^= this->DDSaccumulator;                                        // Test for changes in the low half of the DDS accumulator
-    stepNow &= (1L << this->stepBit);                                       // Check for the step bit
+    int32_t stepNow = this->DDSaccumulator;                             // Save the current DDS accumulator value
+    this->DDSaccumulator += DDSaddValue;                                // Update the DDS accumulator with the new add value
+    stepNow ^= this->DDSaccumulator;                                    // Test for changes in the low half of the DDS accumulator
+    stepNow &= (1L << STEPBIT);                                         // Check for the step bit
     if (!stepNow)
         return;
 
     bool isForward = (DDSaddValue > 0);
-    this->directionPin->set(isForward);                           // Set direction pin
+    this->directionPin->set(isForward);                                 // Set direction pin
     this->stepPin->set(true);                                           // Raise step pin
 
     if (isForward)
