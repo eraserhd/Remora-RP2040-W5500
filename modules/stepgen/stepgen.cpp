@@ -62,13 +62,9 @@ void Stepgen::update()
     stepPin->set(true);
 
     if (isForward)
-    {
         ++stepperPosition;
-    }
     else
-    {
         --stepperPosition;
-    }
 
     txData_t *txData = getCurrentTxBuffer(&txPingPongBuffer);
     txData->jointFeedback[this->jointNumber] = this->stepperPosition;
