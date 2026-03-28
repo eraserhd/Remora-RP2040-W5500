@@ -11,9 +11,6 @@
 class Stepgen : public Module
 {
 private:
-    int jointNumber;                // LinuxCNC joint number
-    int mask;
-
     volatile int32_t stepperPosition;
     volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;         // Direct Digital Synthesis (DDS) accumulator
@@ -21,7 +18,7 @@ private:
     Pin *stepPin, *directionPin;        // class object members - Pin objects
 
 public:
-    Stepgen(int32_t, int, std::string, std::string);
+    Stepgen(std::string, std::string);
 
     static Stepgen* load(JsonObject module);
 

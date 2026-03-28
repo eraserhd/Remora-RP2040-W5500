@@ -7,21 +7,18 @@ Stepgen *Stepgen::load(JsonObject module)
     const char* comment = module["Comment"];
     printf("\n%s\n",comment);
 
-    int joint = module["Joint Number"];
     const char* step = module["Step Pin"];
     const char* dir = module["Direction Pin"];
 
     // create the step generator, register it in the thread
-    Stepgen* stepgen = new Stepgen(base_freq, joint, step, dir);
+    Stepgen* stepgen = new Stepgen(step, dir);
     baseThread->registerModule(stepgen);
     baseThread->registerModulePost(stepgen);
     return stepgen;
 }
 
-Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction)
-    : jointNumber(jointNumber)
-    , mask(1 << jointNumber)
-    , stepperPosition(0)
+Stepgen::Stepgen(std::string step, std::string direction)
+    : stepperPosition(0)
     , DDSaddValue(0)
     , DDSaccumulator(0)
     , stepPin(new Pin(step, OUTPUT))
