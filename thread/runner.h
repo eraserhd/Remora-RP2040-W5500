@@ -18,10 +18,12 @@ struct NormalRunContext
     static void run(pruThread* thread);
 };
 
-template<int32_t TimerNumber, int32_t Freq, typename RunContext>
+template<int TimerNumber, int32_t Freq, typename RunContext>
 class ThreadRunner
 {
 private:
+    static_assert(TimerNumber >= 0 && TimerNumber <= 3, "RP2040 only has timers 0-3.");
+
     static constexpr int32_t Irq = TIMER_IRQ_0 + TimerNumber;
     static constexpr int32_t Period = 1000000 / Freq;
 
@@ -49,7 +51,7 @@ public:
     }
 };
 
-template<int32_t TimerNumber, int32_t Freq, typename RunContext>
+template<int TimerNumber, int32_t Freq, typename RunContext>
 pruThread *ThreadRunner<TimerNumber,Freq,RunContext>::thread = NULL;
 
 typedef ThreadRunner<0, PRU_BASEFREQ, InterruptRunContext> BaseThreadRunner;
