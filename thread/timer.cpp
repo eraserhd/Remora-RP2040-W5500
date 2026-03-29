@@ -4,7 +4,6 @@
 #include <stdio.h>
 
 #include "../configuration.h"
-#include "../interrupt/interrupt.h"
 #include "timerInterrupt.h"
 #include "timer.h"
 #include "pruThread.h"
