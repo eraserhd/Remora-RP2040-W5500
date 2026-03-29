@@ -2,7 +2,6 @@
 #include "timerInterrupt.h"
 #include "timer.h"
 
-
 TimerInterrupt::TimerInterrupt(int interruptNumber, pruTimer* owner)
 {
     // Allows interrupt to access owner's data

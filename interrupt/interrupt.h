@@ -3,9 +3,6 @@
 
 #include "../configuration.h"
 
-#define BASE_PERIOD 1000000 / PRU_BASEFREQ
-#define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
-
 // Base class for all interrupt derived classes
 
 #define PERIPH_COUNT_IRQn   8               // Total number of device interrupt sources - 8 PWM Slices (for the moment)

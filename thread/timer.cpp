@@ -9,6 +9,9 @@
 #include "timer.h"
 #include "pruThread.h"
 
+#define BASE_PERIOD 1000000 / PRU_BASEFREQ
+#define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
+
 void PWM_Wrap_Handler0()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
@@ -23,7 +26,6 @@ void PWM_Wrap_Handler1()
     Interrupt::SLICE1_Wrapper();
 }
 
-// Timer constructor
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
     : slice(slice)
     , timerOwnerPtr(ownerPtr)
