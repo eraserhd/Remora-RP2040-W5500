@@ -16,64 +16,27 @@
 #define PERIPH_COUNT_IRQn   8               // Total number of device interrupt sources - 8 PWM Slices (for the moment)
 
 
-class Interrupt
-{
-protected:
+static pruTimer* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
 
-public:
-    Interrupt(void) {}
-
-    virtual void ISR_Handler(void) = 0;
-};
-
-static Interrupt* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
-
-class TimerInterrupt : public Interrupt
-{
-private:
-    pruTimer* InterruptOwnerPtr;
-
-public:
-    TimerInterrupt(int interruptNumber, pruTimer* ownerptr);
-
-    void ISR_Handler(void);
-};
-
-TimerInterrupt::TimerInterrupt(int interruptNumber, pruTimer* owner)
-{
-    // Allows interrupt to access owner's data
-    InterruptOwnerPtr = owner;
-
-    // When a device interrupt object is instantiated, the Register function must be called to let the
-    // Interrupt base class know that there is an appropriate ISR function for the given interrupt.
-    printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
-    ISRVectorTable[interruptNumber] = this;
-}
-
-void TimerInterrupt::ISR_Handler(void)
-{
-    this->InterruptOwnerPtr->timerTick();
-}
-
-void PWM_Wrap_Handler0()
+void pruTimer::PWM_Wrap_Handler0()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
     timer_hw->alarm[0] += BASE_PERIOD;
-    ISRVectorTable[0]->ISR_Handler();
+    ISRVectorTable[0]->timerTick();
 }
 
-void PWM_Wrap_Handler1()
+void pruTimer::PWM_Wrap_Handler1()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
-    ISRVectorTable[1]->ISR_Handler();
+    ISRVectorTable[1]->timerTick();
 }
 
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
     : slice(slice)
     , timerOwnerPtr(ownerPtr)
 {
-    new TimerInterrupt(this->slice, this);   // Instantiate a new Timer Interrupt object and pass "this" pointer
+    ISRVectorTable[slice] = this;
     this->startTimer();
 }
 
