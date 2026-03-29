@@ -29,7 +29,7 @@ pruThread::pruThread(uint8_t slice)
 
 void pruThread::startThread(void)
 {
-    TimerPtr = new pruTimer(this->slice, this);
+    new pruTimer(this->slice, this);
 }
 
 void pruThread::registerModule(Module* module)
