@@ -19,29 +19,14 @@
 class Interrupt
 {
 protected:
-    static Interrupt* ISRVectorTable[PERIPH_COUNT_IRQn];
 
 public:
     Interrupt(void) {}
 
-    static void Register(int interruptNumber, Interrupt* intThisPtr)
-    {
-        printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
-        ISRVectorTable[interruptNumber] = intThisPtr;
-    }
-
-    static void SLICE0_Wrapper()
-    {
-        ISRVectorTable[0]->ISR_Handler();
-    }
-
-    static void SLICE1_Wrapper()
-    {
-        ISRVectorTable[1]->ISR_Handler();
-    }
-
     virtual void ISR_Handler(void) = 0;
 };
+
+static Interrupt* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
 
 class TimerInterrupt : public Interrupt
 {
@@ -54,10 +39,6 @@ public:
     void ISR_Handler(void);
 };
 
-
-// Define the vector table, it is only declared in the class declaration
-Interrupt* Interrupt::ISRVectorTable[] = {0};
-
 TimerInterrupt::TimerInterrupt(int interruptNumber, pruTimer* owner)
 {
     // Allows interrupt to access owner's data
@@ -65,7 +46,8 @@ TimerInterrupt::TimerInterrupt(int interruptNumber, pruTimer* owner)
 
     // When a device interrupt object is instantiated, the Register function must be called to let the
     // Interrupt base class know that there is an appropriate ISR function for the given interrupt.
-    Interrupt::Register(interruptNumber, this);
+    printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
+    ISRVectorTable[interruptNumber] = this;
 }
 
 void TimerInterrupt::ISR_Handler(void)
@@ -77,14 +59,14 @@ void PWM_Wrap_Handler0()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
     timer_hw->alarm[0] += BASE_PERIOD;
-    Interrupt::SLICE0_Wrapper();
+    ISRVectorTable[0]->ISR_Handler();
 }
 
 void PWM_Wrap_Handler1()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
-    Interrupt::SLICE1_Wrapper();
+    ISRVectorTable[1]->ISR_Handler();
 }
 
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
