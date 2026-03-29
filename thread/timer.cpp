@@ -30,7 +30,7 @@ void handleAlarmInterrupt()
 }
 
 template<typename Traits>
-void startTimer(pruThread *thread)
+void runThread(pruThread *thread)
 {
     printf("    setting up timer Slice %d\n", Traits::BIT);
     printf("    actual period = %d\n", Traits::PERIOD);
@@ -47,9 +47,9 @@ void startTimer(pruThread *thread)
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
 {
     if (slice == 0) 
-        ::startTimer<BaseThreadTimer>(ownerPtr);
+        ::runThread<BaseThreadTimer>(ownerPtr);
     else if (slice == 1)
-        ::startTimer<ServoThreadTimer>(ownerPtr);
+        ::runThread<ServoThreadTimer>(ownerPtr);
     else
         printf("    Invalid Slice\n");
 }
