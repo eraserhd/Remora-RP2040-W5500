@@ -7,9 +7,6 @@
 #include "timer.h"
 #include "pruThread.h"
 
-pruThread *BaseThreadRunner::thread = NULL;
-pruThread *ServoThreadRunner::thread = NULL;
-
 void InterruptRunContext::run(pruThread* thread)
 {
     thread->execute = true;
@@ -22,14 +19,6 @@ void NormalRunContext::run(pruThread* thread)
 }
 
 template<typename Traits>
-void handleAlarmInterrupt()
-{
-    hw_clear_bits(&timer_hw->intr, 1u << Traits::BIT);
-    timer_hw->alarm[Traits::BIT] += Traits::PERIOD;
-    Traits::RunContext::run(Traits::thread);
-}
-
-template<typename Traits>
 void runThread(pruThread *thread)
 {
     printf("    setting up timer Slice %d\n", Traits::BIT);
@@ -37,7 +26,7 @@ void runThread(pruThread *thread)
 
     Traits::thread = thread;
     hw_set_bits(&timer_hw->inte, 1u << Traits::BIT);
-    irq_set_exclusive_handler(Traits::IRQ, handleAlarmInterrupt<Traits>);
+    irq_set_exclusive_handler(Traits::IRQ, Traits::handleAlarmInterrupt);
     irq_set_enabled(Traits::IRQ, true);
     timer_hw->alarm[Traits::BIT] = timer_hw->timerawl + Traits::PERIOD;
 
