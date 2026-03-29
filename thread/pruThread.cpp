@@ -4,6 +4,7 @@
 
 #include "pruThread.h"
 #include "../modules/module.h"
+#include "runner.h"
 
 
 using namespace std;

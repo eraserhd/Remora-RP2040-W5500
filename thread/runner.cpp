@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "../configuration.h"
-#include "timer.h"
+#include "runner.h"
 #include "pruThread.h"
 
 void InterruptRunContext::run(pruThread* thread)

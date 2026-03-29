@@ -1,7 +1,6 @@
 #ifndef PRUTHREAD_H
 #define PRUTHREAD_H
 
-#include "timer.h"
 #include <vector>
 
 using namespace std;

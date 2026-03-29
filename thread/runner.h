@@ -1,5 +1,5 @@
-#ifndef TIMER_H
-#define TIMER_H
+#ifndef RUNNER_H
+#define RUNNER_H
 
 #include <stdint.h>
 #include "hardware/irq.h"
