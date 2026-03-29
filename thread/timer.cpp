@@ -11,6 +11,20 @@
 #define BASE_PERIOD 1000000 / PRU_BASEFREQ
 #define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
 
+struct BaseThreadTimer
+{
+    static constexpr int32_t IRQ = TIMER_IRQ_0;
+    static constexpr int32_t BIT = 0;
+    static constexpr int32_t PERIOD = BASE_PERIOD;
+};
+
+struct ServoThreadTimer
+{
+    static constexpr int32_t IRQ = TIMER_IRQ_1;
+    static constexpr int32_t BIT = 1;
+    static constexpr int32_t PERIOD = SERVO_PERIOD;
+};
+
 // Base class for all interrupt derived classes
 
 #define PERIPH_COUNT_IRQn   8               // Total number of device interrupt sources - 8 PWM Slices (for the moment)
@@ -18,7 +32,7 @@
 
 static pruThread* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
 
-void pruTimer::PWM_Wrap_Handler0()
+void PWM_Wrap_Handler0()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
     timer_hw->alarm[0] += BASE_PERIOD;
@@ -27,7 +41,7 @@ void pruTimer::PWM_Wrap_Handler0()
     ISRVectorTable[0]->run();
 }
 
-void pruTimer::PWM_Wrap_Handler1()
+void PWM_Wrap_Handler1()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
@@ -42,36 +56,27 @@ pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
     this->startTimer();
 }
 
+template<typename Traits>
+void startTimer()
+{
+    printf("    setting up timer Slice %d\n", Traits::BIT);
+    printf("    actual period = %d\n", Traits::PERIOD);
+
+    hw_set_bits(&timer_hw->inte, 1u << Traits::BIT);
+    irq_set_exclusive_handler(Traits::IRQ, PWM_Wrap_Handler0);
+    irq_set_enabled(Traits::IRQ, true);
+    timer_hw->alarm[Traits::BIT] = timer_hw->timerawl + Traits::PERIOD;
+
+    printf("    timer started\n");
+}
+
 
 void pruTimer::startTimer(void)
 {
-    uint32_t period;
-    
-    printf("    setting up timer Slice %d\n", this->slice);
-   
-    if (this->slice == 0)
-        period = BASE_PERIOD;
+    if (this->slice == 0) 
+        ::startTimer<BaseThreadTimer>();
     else if (this->slice == 1)
-        period = SERVO_PERIOD;
+        ::startTimer<ServoThreadTimer>();
     else
-        period = 0;
-    printf("    actual period = %d\n", period);
-
-    if (this->slice == 0){
-        hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 0
-        irq_set_exclusive_handler(TIMER_IRQ_0, PWM_Wrap_Handler0);
-        irq_set_enabled(TIMER_IRQ_0, true);
-        timer_hw->alarm[slice] = timer_hw->timerawl + BASE_PERIOD;
-    }
-
-    else if (this->slice == 1){
-        hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 1
-        irq_set_exclusive_handler(TIMER_IRQ_1, PWM_Wrap_Handler1);
-        irq_set_enabled(TIMER_IRQ_1, true);
-        timer_hw->alarm[slice] = timer_hw->timerawl + SERVO_PERIOD;
-    } else{
         printf("    Invalid Slice\n");
-    }
-
-    printf("    timer started\n");
 }
