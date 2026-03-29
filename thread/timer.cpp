@@ -1,5 +1,4 @@
 #include "hardware/irq.h"
-//#include "hardware/pwm.h"
 #include "hardware/timer.h"
 
 #include <stdio.h>
@@ -29,8 +28,7 @@ pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
     : slice(slice)
     , timerOwnerPtr(ownerPtr)
 {
-    interruptPtr = new TimerInterrupt(this->slice, this);   // Instantiate a new Timer Interrupt object and pass "this" pointer
-
+    new TimerInterrupt(this->slice, this);   // Instantiate a new Timer Interrupt object and pass "this" pointer
     this->startTimer();
 }
 

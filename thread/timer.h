@@ -10,7 +10,6 @@ class pruTimer
 {
     friend class TimerInterrupt;
 private:
-    TimerInterrupt*     interruptPtr;
     uint8_t             slice;
     pruThread*          timerOwnerPtr;
 
