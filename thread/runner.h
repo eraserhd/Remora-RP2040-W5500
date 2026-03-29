@@ -25,8 +25,9 @@ struct ThreadRunner
     static constexpr int32_t IRQ = irq;
     static constexpr int32_t BIT = bit;
     static constexpr int32_t PERIOD = 1000000 / freq;
-    static pruThread *thread;
 
+private:
+    static pruThread *thread;
     static void handleAlarmInterrupt()
     {
         hw_clear_bits(&timer_hw->intr, 1u << BIT);
@@ -34,6 +35,7 @@ struct ThreadRunner
         RunContext::run(thread);
     }
 
+public:
     static void start(pruThread *_thread)
     {
         printf("    setting up timer Slice %d\n", BIT);
