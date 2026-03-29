@@ -9,13 +9,12 @@ class pruTimer
 {
 private:
     uint8_t             slice;
-    pruThread*          timerOwnerPtr;
 
     void startTimer(void);
-    void timerTick();
 
     static void PWM_Wrap_Handler0(void);
     static void PWM_Wrap_Handler1(void);
+
 public:
     pruTimer(uint8_t slice, pruThread* ownerPtr);
 };

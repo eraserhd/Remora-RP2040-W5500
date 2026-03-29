@@ -16,38 +16,32 @@
 #define PERIPH_COUNT_IRQn   8               // Total number of device interrupt sources - 8 PWM Slices (for the moment)
 
 
-static pruTimer* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
+static pruThread* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
 
 void pruTimer::PWM_Wrap_Handler0()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
     timer_hw->alarm[0] += BASE_PERIOD;
-    ISRVectorTable[0]->timerTick();
+    // base thread runs in interrupt context
+    ISRVectorTable[0]->execute = true;
+    ISRVectorTable[0]->run();
 }
 
 void pruTimer::PWM_Wrap_Handler1()
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
-    ISRVectorTable[1]->timerTick();
+    // servo thread will run next poll
+    ISRVectorTable[1]->execute = true;
 }
 
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
     : slice(slice)
-    , timerOwnerPtr(ownerPtr)
 {
-    ISRVectorTable[slice] = this;
+    ISRVectorTable[slice] = ownerPtr;
     this->startTimer();
 }
 
-
-void pruTimer::timerTick(void)
-{
-    //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
-    this->timerOwnerPtr->execute = true;
-    if (this->slice == 0)
-        this->timerOwnerPtr->run();
-}
 
 void pruTimer::startTimer(void)
 {
