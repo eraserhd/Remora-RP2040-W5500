@@ -18,10 +18,11 @@ struct NormalRunContext
     static void run(pruThread* thread);
 };
 
-template<int32_t Irq, int32_t Bit, int32_t Freq, typename RunContext>
+template<int32_t Bit, int32_t Freq, typename RunContext>
 class ThreadRunner
 {
 private:
+    static constexpr int32_t Irq = TIMER_IRQ_0 + Bit;
     static constexpr int32_t Period = 1000000 / Freq;
 
     static pruThread *thread;
@@ -48,10 +49,10 @@ public:
     }
 };
 
-template<int32_t irq, int32_t bit, int32_t freq, typename RunContextType>
-pruThread *ThreadRunner<irq,bit,freq,RunContextType>::thread = NULL;
+template<int32_t Bit, int32_t Freq, typename RunContext>
+pruThread *ThreadRunner<Bit,Freq,RunContext>::thread = NULL;
 
-typedef ThreadRunner<TIMER_IRQ_0, 0, PRU_BASEFREQ, InterruptRunContext> BaseThreadRunner;
-typedef ThreadRunner<TIMER_IRQ_1, 1, PRU_SERVOFREQ, NormalRunContext> ServoThreadRunner;
+typedef ThreadRunner<0, PRU_BASEFREQ, InterruptRunContext> BaseThreadRunner;
+typedef ThreadRunner<1, PRU_SERVOFREQ, NormalRunContext> ServoThreadRunner;
 
 #endif
