@@ -344,46 +344,35 @@ void loadModules()
     {
         module = *it;
 
-        const char* thread = module["Thread"];
         const char* type = module["Type"];
-
-        if (!strcmp(thread,"Base"))
+        if (!strcmp(type,"Stepgen"))
         {
-            printf("\nBase thread object\n");
-
-            if (!strcmp(type,"Stepgen"))
+            int joint = module["Joint Number"];
+            if (NULL != stepGenerators[joint])
             {
-                int joint = module["Joint Number"];
-                if (NULL != stepGenerators[joint])
-                {
-                    printf("ERROR!  Joint Number %d specified more than once.\n", joint);
-                    configError = true;
-                }
-                stepGenerators[joint] = Stepgen::load(module);
+                printf("ERROR!  Joint Number %d specified more than once.\n", joint);
+                configError = true;
             }
-         }
-        else if (!strcmp(thread,"Servo"))
+            stepGenerators[joint] = Stepgen::load(module);
+        }
+        else if (!strcmp(type,"Blink"))
         {
-            if (!strcmp(type,"Blink"))
-            {
-                createBlink();
-            }
-            else if (!strcmp(type,"Digital Pin"))
-            {
-                const char *mode = module["Mode"];
-                int dataBit = module["Data Bit"];
-                if (!strcmp(mode, "Input"))
-                    inputs[dataBit] = DigitalPin::load(module);
-                else if (!strcmp(mode, "Output"))
-                    outputs[dataBit] = DigitalPin::load(module);
-            }
-            else if (!strcmp(type,"Spindle PWM"))
-            {
-                //createSpindlePWM();
-            }
+            createBlink();
+        }
+        else if (!strcmp(type,"Digital Pin"))
+        {
+            const char *mode = module["Mode"];
+            int dataBit = module["Data Bit"];
+            if (!strcmp(mode, "Input"))
+                inputs[dataBit] = DigitalPin::load(module);
+            else if (!strcmp(mode, "Output"))
+                outputs[dataBit] = DigitalPin::load(module);
+        }
+        else if (!strcmp(type,"Spindle PWM"))
+        {
+            //createSpindlePWM();
         }
     }
-
 }
 
 
