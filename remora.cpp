@@ -73,7 +73,6 @@ extern "C"
 #include "drivers/pin/pin.h"
 
 // interrupts
-#include "interrupt/irqHandlers.h"
 #include "interrupt/interrupt.h"
 
 // threads
