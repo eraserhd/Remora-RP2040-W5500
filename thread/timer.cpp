@@ -22,13 +22,23 @@ protected:
     static Interrupt* ISRVectorTable[PERIPH_COUNT_IRQn];
 
 public:
-    Interrupt(void);
+    Interrupt(void) {}
 
-    static void Register(int interruptNumber, Interrupt* intThisPtr);
+    static void Register(int interruptNumber, Interrupt* intThisPtr)
+    {
+        printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
+        ISRVectorTable[interruptNumber] = intThisPtr;
+    }
 
-    // wrapper functions to ISR_Handler()
-    static void SLICE0_Wrapper();
-    static void SLICE1_Wrapper();
+    static void SLICE0_Wrapper()
+    {
+        ISRVectorTable[0]->ISR_Handler();
+    }
+
+    static void SLICE1_Wrapper()
+    {
+        ISRVectorTable[1]->ISR_Handler();
+    }
 
     virtual void ISR_Handler(void) = 0;
 };
@@ -47,28 +57,6 @@ public:
 
 // Define the vector table, it is only declared in the class declaration
 Interrupt* Interrupt::ISRVectorTable[] = {0};
-
-// Constructor
-Interrupt::Interrupt(void){}
-
-// Methods
-
-void Interrupt::Register(int interruptNumber, Interrupt* intThisPtr)
-{
-    printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
-    ISRVectorTable[interruptNumber] = intThisPtr;
-}
-
-void Interrupt::SLICE0_Wrapper(void)
-{
-    ISRVectorTable[0]->ISR_Handler();
-}
-
-void Interrupt::SLICE1_Wrapper(void)
-{
-    ISRVectorTable[1]->ISR_Handler();
-}
-
 
 TimerInterrupt::TimerInterrupt(int interruptNumber, pruTimer* owner)
 {
