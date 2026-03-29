@@ -16,14 +16,13 @@ private:
     pruTimer*           TimerPtr;
 
     uint8_t             slice;
-    uint32_t            frequency;
 
     vector<Module*> vThread;        // vector containing pointers to Thread modules
 
 public:
     bool                execute;
 
-    pruThread(uint8_t slice, uint32_t frequency);
+    pruThread(uint8_t slice);
 
     void registerModule(Module *module);
     void startThread(void);

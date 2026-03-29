@@ -12,14 +12,13 @@ class pruTimer
 private:
     TimerInterrupt*     interruptPtr;
     uint8_t             slice;
-    uint32_t            frequency;
     pruThread*          timerOwnerPtr;
 
     void startTimer(void);
     void timerTick();           // Private timer tiggered method
 
 public:
-    pruTimer(uint8_t slice, uint32_t frequency, pruThread* ownerPtr);
+    pruTimer(uint8_t slice, pruThread* ownerPtr);
     void stopTimer(void);
 };
 

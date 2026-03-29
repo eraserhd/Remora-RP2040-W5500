@@ -91,9 +91,6 @@ extern "C"
 *                STRUCTURES AND GLOBAL VARIABLES                       *
 ************************************************************************/
 
-uint32_t base_freq = PRU_BASEFREQ;
-uint32_t servo_freq = PRU_SERVOFREQ;
-
 // boolean
 bool configError = false;
 
@@ -296,36 +293,6 @@ void deserialiseJSON()
 }
 
 
-void configThreads()
-{
-    if (configError) return;
-
-    printf("\n3. Configuring threads\n");
-
-    JsonArray Threads = doc["Threads"];
-
-    // create objects from JSON data
-    for (JsonArray::iterator it=Threads.begin(); it!=Threads.end(); ++it)
-    {
-        thread = *it;
-
-        const char* configor = thread["Thread"];
-        uint32_t    freq = thread["Frequency"];
-
-        if (!strcmp(configor,"Base"))
-        {
-            base_freq = freq;
-            printf("Setting BASE thread frequency to %d\n", base_freq);
-        }
-        else if (!strcmp(configor,"Servo"))
-        {
-            servo_freq = freq;
-            printf("Setting SERVO thread frequency to %d\n", servo_freq);
-        }
-    }
-}
-
-
 void loadModules()
 {
     printf("\n4. Loading modules\n");
@@ -382,7 +349,6 @@ void core1_entry()
 
     jsonFromFlash();
     deserialiseJSON();
-    configThreads();
     createThreads();
     loadModules();
 
@@ -414,7 +380,7 @@ void core1_entry()
         printf("\n## Entering RESET state\n");
         // Stop all movement
         for (int i = 0; i < JOINTS; i++)
-            stepGenerators[i]->frequencyCommand(base_freq, false, 0);
+            stepGenerators[i]->frequencyCommand(PRU_BASEFREQ, false, 0);
     }
 }
 
@@ -619,7 +585,7 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
                 continue;
             bool isEnabled = (rxBuffer.jointEnable & (1 << i)) != 0;
             int32_t frequencyCmd = rxBuffer.jointFreqCmd[i];
-            stepGenerators[i]->frequencyCommand(base_freq, isEnabled, frequencyCmd);
+            stepGenerators[i]->frequencyCommand(PRU_BASEFREQ, isEnabled, frequencyCmd);
         }
         for (int i = 0; i < sizeof(outputs)/sizeof(outputs[0]); ++i)
         {
