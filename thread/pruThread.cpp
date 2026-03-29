@@ -30,9 +30,9 @@ pruThread::pruThread(uint8_t slice)
 void pruThread::startThread(void)
 {
     if (0 == slice)
-        BaseThreadRunner::run(this);
+        BaseThreadRunner::start(this);
     else if (1 == slice)
-        ServoThreadRunner::run(this);
+        ServoThreadRunner::start(this);
 }
 
 void pruThread::registerModule(Module* module)

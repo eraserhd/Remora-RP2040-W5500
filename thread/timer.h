@@ -34,7 +34,7 @@ struct ThreadRunner
         RunContext::run(thread);
     }
 
-    static void run(pruThread *_thread)
+    static void start(pruThread *_thread)
     {
         printf("    setting up timer Slice %d\n", BIT);
         printf("    actual period = %d\n", PERIOD);
