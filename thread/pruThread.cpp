@@ -25,7 +25,6 @@ pruThread::pruThread(uint8_t slice, uint32_t frequency) :
         gpio_set_dir(27, 1);
     }   
 
-    this->semaphore = false;
     this->execute = false;
 }
 
@@ -55,12 +54,8 @@ void pruThread::registerModulePost(Module* module)
 
 void pruThread::run(void)
 {
-
     if(!this->execute)
         return; 
-    
-    while (this->semaphore == true);    
-        this->semaphore = true; 
     
     if (this->slice == 0){
         gpio_put(6, 1);
@@ -88,5 +83,4 @@ void pruThread::run(void)
     }
 
     this->execute = false;
-    this->semaphore = false;
 }
