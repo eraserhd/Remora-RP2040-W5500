@@ -64,11 +64,10 @@ void startTimer(pruThread *thread)
 }
 
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
-    : slice(slice)
 {
-    if (this->slice == 0) 
+    if (slice == 0) 
         ::startTimer<BaseThreadTimer>(ownerPtr);
-    else if (this->slice == 1)
+    else if (slice == 1)
         ::startTimer<ServoThreadTimer>(ownerPtr);
     else
         printf("    Invalid Slice\n");
