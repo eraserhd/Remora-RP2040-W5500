@@ -13,7 +13,6 @@ Stepgen *Stepgen::load(JsonObject module)
     // create the step generator, register it in the thread
     Stepgen* stepgen = new Stepgen(step, dir);
     baseThread->registerModule(stepgen);
-    baseThread->registerModulePost(stepgen);
     return stepgen;
 }
 

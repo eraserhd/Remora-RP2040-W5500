@@ -45,13 +45,6 @@ void pruThread::registerModule(Module* module)
 }
 
 
-void pruThread::registerModulePost(Module* module)
-{
-    this->vThreadPost.push_back(module);
-    this->hasThreadPost = true;
-}
-
-
 void pruThread::run(void)
 {
     if(!this->execute)
@@ -65,18 +58,12 @@ void pruThread::run(void)
         gpio_put(27, 1);
     }
 
-    // iterate over the Thread pointer vector to run all instances of Module::runModule()
-    for (iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModule();
+    for (auto iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModule();
+    for (auto iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModulePost();
 
-    // iterate over the second vector that contains module pointers to run after (post) the main vector
-    if (hasThreadPost)
-    {
-        for (iter = vThreadPost.begin(); iter != vThreadPost.end(); ++iter) (*iter)->runModulePost();
-    }
-    
     if (this->slice == 0){
         gpio_put(6, 0);
-    } 
+    }
 
     if (this->slice == 1){
         gpio_put(27, 0);
