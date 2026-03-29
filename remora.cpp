@@ -143,7 +143,6 @@ static ip_addr_t g_gateway;
 /* LWIP */
 struct netif g_netif;
 
-int8_t retval = 0;
 uint8_t *pack = static_cast<uint8_t *>(malloc(ETHERNET_MTU));
 uint16_t pack_len = 0;
 struct pbuf *p = NULL;
@@ -528,8 +527,7 @@ void EthernetInit()
     netif_set_status_callback(&g_netif, netif_status_callback);
 
     // MACRAW socket open
-    retval = socket(SOCKET_MACRAW, Sn_MR_MACRAW, PORT_LWIPERF, 0x00);
-
+    int8_t retval = socket(SOCKET_MACRAW, Sn_MR_MACRAW, PORT_LWIPERF, 0x00);
     if (retval < 0)
     {
         printf(" MACRAW socket open failed\n");
@@ -601,7 +599,7 @@ void reply(struct udp_pcb *upcb, const ip_addr_t *addr, u16_t port, char* data, 
 
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
-    static rxData_t rxBuffer;
+    static rxData_t rxBuffer = {};
     memcpy(&rxBuffer.rxBuffer, p->payload, p->len);
     pbuf_free(p);
 

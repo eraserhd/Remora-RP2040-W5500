@@ -24,7 +24,6 @@ void createBlink()
 
 Blink::Blink(std::string portAndPin, uint32_t threadFreq, uint32_t freq)
 {
-
     this->periodCount = threadFreq / freq;
     this->blinkCount = 0;
     this->bState = false;
