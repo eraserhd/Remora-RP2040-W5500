@@ -10,27 +10,24 @@
 pruThread *BaseThreadTimer::thread = NULL;
 pruThread *ServoThreadTimer::thread = NULL;
 
-void PWM_Wrap_Handler0()
+void InterruptRunContext::run(pruThread* thread)
 {
-    typedef BaseThreadTimer Traits;
-
-    hw_clear_bits(&timer_hw->intr, 1u << Traits::BIT);
-    timer_hw->alarm[Traits::BIT] += Traits::PERIOD;
-    // base thread runs in interrupt context
-    Traits::thread->execute = true;
-    Traits::thread->run();
+    thread->execute = true;
+    thread->run();
 }
 
-void PWM_Wrap_Handler1()
+void NormalRunContext::run(pruThread* thread)
 {
-    typedef ServoThreadTimer Traits;
-
-    hw_clear_bits(&timer_hw->intr, 1u << Traits::BIT);
-    timer_hw->alarm[Traits::BIT] += Traits::PERIOD;
-    // servo thread will run next poll
-    Traits::thread->execute = true;
+    thread->execute = true;
 }
 
+template<typename Traits>
+void handleAlarmInterrupt()
+{
+    hw_clear_bits(&timer_hw->intr, 1u << Traits::BIT);
+    timer_hw->alarm[Traits::BIT] += Traits::PERIOD;
+    Traits::RunContext::run(Traits::thread);
+}
 
 template<typename Traits>
 void startTimer(pruThread *thread)
@@ -40,7 +37,7 @@ void startTimer(pruThread *thread)
 
 	Traits::thread = thread;
     hw_set_bits(&timer_hw->inte, 1u << Traits::BIT);
-    irq_set_exclusive_handler(Traits::IRQ, PWM_Wrap_Handler0);
+    irq_set_exclusive_handler(Traits::IRQ, handleAlarmInterrupt<Traits>);
     irq_set_enabled(Traits::IRQ, true);
     timer_hw->alarm[Traits::BIT] = timer_hw->timerawl + Traits::PERIOD;
 

@@ -7,8 +7,20 @@
 
 class pruThread; // forward declaration
 
+struct InterruptRunContext
+{
+    static void run(pruThread* thread);
+};
+
+struct NormalRunContext
+{
+    static void run(pruThread* thread);
+};
+
+
 struct BaseThreadTimer
 {
+    typedef InterruptRunContext RunContext;
     static constexpr int32_t IRQ = TIMER_IRQ_0;
     static constexpr int32_t BIT = 0;
     static constexpr int32_t PERIOD = 1000000 / PRU_BASEFREQ;
@@ -17,6 +29,7 @@ struct BaseThreadTimer
 
 struct ServoThreadTimer
 {
+    typedef NormalRunContext RunContext;
     static constexpr int32_t IRQ = TIMER_IRQ_1;
     static constexpr int32_t BIT = 1;
     static constexpr int32_t PERIOD = 1000000 / PRU_SERVOFREQ;
