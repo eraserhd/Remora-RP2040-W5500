@@ -10,7 +10,6 @@
 #include "timer.h"
 #include "pruThread.h"
 
-extern "C" void PWM_Wrap_Handler();
 extern "C" void PWM_Wrap_Handler0();
 extern "C" void PWM_Wrap_Handler1();
 
