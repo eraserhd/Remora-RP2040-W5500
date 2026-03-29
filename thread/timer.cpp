@@ -75,9 +75,3 @@ void pruTimer::startTimer(void)
 
     printf("    timer started\n");
 }
-
-void pruTimer::stopTimer()
-{
-    printf("    timer stop\n\r");
-    irq_set_enabled(PWM_IRQ_WRAP, false);
-}

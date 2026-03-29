@@ -32,12 +32,6 @@ void pruThread::startThread(void)
     TimerPtr = new pruTimer(this->slice, this);
 }
 
-void pruThread::stopThread(void)
-{
-    this->TimerPtr->stopTimer();
-}
-
-
 void pruThread::registerModule(Module* module)
 {
     this->vThread.push_back(module);

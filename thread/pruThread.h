@@ -26,7 +26,6 @@ public:
 
     void registerModule(Module *module);
     void startThread(void);
-    void stopThread(void);
     void run(void);
 };
 

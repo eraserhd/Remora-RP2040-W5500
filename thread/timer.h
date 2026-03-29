@@ -19,7 +19,6 @@ private:
 
 public:
     pruTimer(uint8_t slice, pruThread* ownerPtr);
-    void stopTimer(void);
 };
 
 #endif
