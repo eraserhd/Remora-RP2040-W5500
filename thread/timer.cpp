@@ -7,8 +7,8 @@
 #include "timer.h"
 #include "pruThread.h"
 
-pruThread *BaseThreadTimer::thread = NULL;
-pruThread *ServoThreadTimer::thread = NULL;
+pruThread *BaseThreadRunner::thread = NULL;
+pruThread *ServoThreadRunner::thread = NULL;
 
 void InterruptRunContext::run(pruThread* thread)
 {
@@ -47,9 +47,9 @@ void runThread(pruThread *thread)
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
 {
     if (slice == 0) 
-        ::runThread<BaseThreadTimer>(ownerPtr);
+        ::runThread<BaseThreadRunner>(ownerPtr);
     else if (slice == 1)
-        ::runThread<ServoThreadTimer>(ownerPtr);
+        ::runThread<ServoThreadRunner>(ownerPtr);
     else
         printf("    Invalid Slice\n");
 }

@@ -18,7 +18,7 @@ struct NormalRunContext
 };
 
 
-struct BaseThreadTimer
+struct BaseThreadRunner
 {
     typedef InterruptRunContext RunContext;
     static constexpr int32_t IRQ = TIMER_IRQ_0;
@@ -27,7 +27,7 @@ struct BaseThreadTimer
     static pruThread *thread;
 };
 
-struct ServoThreadTimer
+struct ServoThreadRunner
 {
     typedef NormalRunContext RunContext;
     static constexpr int32_t IRQ = TIMER_IRQ_1;
