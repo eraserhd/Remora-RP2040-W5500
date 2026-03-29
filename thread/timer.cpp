@@ -7,30 +7,21 @@
 #include "timer.h"
 #include "pruThread.h"
 
-
-#define BASE_PERIOD 1000000 / PRU_BASEFREQ
-#define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
-
 struct BaseThreadTimer
 {
     static constexpr int32_t IRQ = TIMER_IRQ_0;
     static constexpr int32_t BIT = 0;
-    static constexpr int32_t PERIOD = BASE_PERIOD;
+    static constexpr int32_t PERIOD = 1000000 / PRU_BASEFREQ;
 };
 
 struct ServoThreadTimer
 {
     static constexpr int32_t IRQ = TIMER_IRQ_1;
     static constexpr int32_t BIT = 1;
-    static constexpr int32_t PERIOD = SERVO_PERIOD;
+    static constexpr int32_t PERIOD = 1000000 / PRU_SERVOFREQ;
 };
 
-// Base class for all interrupt derived classes
-
-#define PERIPH_COUNT_IRQn   8               // Total number of device interrupt sources - 8 PWM Slices (for the moment)
-
-
-static pruThread* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
+static pruThread* ISRVectorTable[4] = {};
 
 void PWM_Wrap_Handler0()
 {
