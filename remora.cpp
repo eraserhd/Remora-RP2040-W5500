@@ -143,11 +143,6 @@ static ip_addr_t g_gateway;
 /* LWIP */
 struct netif g_netif;
 
-uint8_t *pack = static_cast<uint8_t *>(malloc(ETHERNET_MTU));
-uint16_t pack_len = 0;
-struct pbuf *p = NULL;
-
-
 
 int8_t checkJson()
 {
@@ -541,34 +536,32 @@ void EthernetInit()
 
 void EthernetTasks()
 {
+    uint16_t pack_len = 0;
     getsockopt(SOCKET_MACRAW, SO_RECVBUF, &pack_len);
     if (0 == pack_len)
         return;
 
+    static uint8_t pack[ETHERNET_MTU];
     pack_len = recv_lwip(SOCKET_MACRAW, (uint8_t *)pack, pack_len);
-
-    if (pack_len)
-    {
-        p = pbuf_alloc(PBUF_RAW, pack_len, PBUF_POOL);
-        pbuf_take(p, pack, pack_len);
-        free(pack);
-
-        pack = static_cast<uint8_t *>(malloc(ETHERNET_MTU));
-    }
-    else
+    if (0 == pack_len)
     {
         printf(" No packet received\n");
+        return;
     }
 
-    if (pack_len && p != NULL)
+    struct pbuf *p = pbuf_alloc(PBUF_RAW, pack_len, PBUF_POOL);
+    if (NULL == p)
     {
-        LINK_STATS_INC(link.recv);
-
-        if (g_netif.input(p, &g_netif) != ERR_OK)
-        {
-            pbuf_free(p);
-        }
+        printf("discarding packet: buffer pool exhausted\n");
+        return;
     }
+
+    pbuf_take(p, pack, pack_len);
+    LINK_STATS_INC(link.recv);
+    if (ERR_OK == g_netif.input(p, &g_netif))
+        return;
+
+    pbuf_free(p);
 }
 
 
