@@ -34,19 +34,23 @@ static pruThread* ISRVectorTable[PERIPH_COUNT_IRQn] = {};
 
 void PWM_Wrap_Handler0()
 {
-    hw_clear_bits(&timer_hw->intr, 1u << 0);
-    timer_hw->alarm[0] += BASE_PERIOD;
+    typedef BaseThreadTimer Traits;
+
+    hw_clear_bits(&timer_hw->intr, 1u << Traits::BIT);
+    timer_hw->alarm[Traits::BIT] += Traits::PERIOD;
     // base thread runs in interrupt context
-    ISRVectorTable[0]->execute = true;
-    ISRVectorTable[0]->run();
+    ISRVectorTable[Traits::BIT]->execute = true;
+    ISRVectorTable[Traits::BIT]->run();
 }
 
 void PWM_Wrap_Handler1()
 {
-    hw_clear_bits(&timer_hw->intr, 1u << 1);
-    timer_hw->alarm[1] += SERVO_PERIOD;
+    typedef ServoThreadTimer Traits;
+
+    hw_clear_bits(&timer_hw->intr, 1u << Traits::BIT);
+    timer_hw->alarm[Traits::BIT] += Traits::PERIOD;
     // servo thread will run next poll
-    ISRVectorTable[1]->execute = true;
+    ISRVectorTable[Traits::BIT]->execute = true;
 }
 
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
