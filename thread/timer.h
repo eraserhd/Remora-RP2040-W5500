@@ -33,6 +33,20 @@ struct ThreadRunner
         timer_hw->alarm[BIT] += PERIOD;
         RunContext::run(thread);
     }
+
+    static void run(pruThread *_thread)
+    {
+        printf("    setting up timer Slice %d\n", BIT);
+        printf("    actual period = %d\n", PERIOD);
+
+        thread = _thread;
+        hw_set_bits(&timer_hw->inte, 1u << BIT);
+        irq_set_exclusive_handler(IRQ, handleAlarmInterrupt);
+        irq_set_enabled(IRQ, true);
+        timer_hw->alarm[BIT] = timer_hw->timerawl + PERIOD;
+
+        printf("    timer started\n");
+    }
 };
 
 template<int32_t irq, int32_t bit, int32_t freq, typename RunContextType>
@@ -40,11 +54,5 @@ pruThread *ThreadRunner<irq,bit,freq,RunContextType>::thread = NULL;
 
 typedef ThreadRunner<TIMER_IRQ_0, 0, PRU_BASEFREQ, InterruptRunContext> BaseThreadRunner;
 typedef ThreadRunner<TIMER_IRQ_1, 1, PRU_SERVOFREQ, NormalRunContext> ServoThreadRunner;
-
-class pruTimer
-{
-public:
-    pruTimer(uint8_t slice, pruThread* ownerPtr);
-};
 
 #endif

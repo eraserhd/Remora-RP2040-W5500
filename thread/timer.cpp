@@ -17,28 +17,3 @@ void NormalRunContext::run(pruThread* thread)
 {
     thread->execute = true;
 }
-
-template<typename Traits>
-void runThread(pruThread *thread)
-{
-    printf("    setting up timer Slice %d\n", Traits::BIT);
-    printf("    actual period = %d\n", Traits::PERIOD);
-
-    Traits::thread = thread;
-    hw_set_bits(&timer_hw->inte, 1u << Traits::BIT);
-    irq_set_exclusive_handler(Traits::IRQ, Traits::handleAlarmInterrupt);
-    irq_set_enabled(Traits::IRQ, true);
-    timer_hw->alarm[Traits::BIT] = timer_hw->timerawl + Traits::PERIOD;
-
-    printf("    timer started\n");
-}
-
-pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr)
-{
-    if (slice == 0) 
-        ::runThread<BaseThreadRunner>(ownerPtr);
-    else if (slice == 1)
-        ::runThread<ServoThreadRunner>(ownerPtr);
-    else
-        printf("    Invalid Slice\n");
-}

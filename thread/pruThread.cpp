@@ -29,7 +29,10 @@ pruThread::pruThread(uint8_t slice)
 
 void pruThread::startThread(void)
 {
-    new pruTimer(this->slice, this);
+    if (0 == slice)
+        BaseThreadRunner::run(this);
+    else if (1 == slice)
+        ServoThreadRunner::run(this);
 }
 
 void pruThread::registerModule(Module* module)
