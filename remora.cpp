@@ -265,43 +265,24 @@ void moveJson()
 }
 
 
-void jsonFromFlash(std::string json)
+void jsonFromFlash()
 {
-    int c;
-    uint32_t i = 0;
-    uint32_t jsonLength;
-
     printf("\n1. Loading JSON configuration file from Flash memory\n");
 
     // read byte 0 to determine length to read
-    jsonLength = *(uint32_t*)(XIP_BASE + JSON_STORAGE_ADDRESS);
-
+    uint32_t jsonLength = *(uint32_t*)(XIP_BASE + JSON_STORAGE_ADDRESS);
     if (jsonLength == 0xFFFFFFFF)
     {
     	printf("Flash storage location is empty - no config file\n");
     	printf("Using default configuration\n\n");
-
-        jsonLength = sizeof(defaultConfig);
-
-    	json.resize(jsonLength);
-
-		for (i = 0; i < jsonLength; i++)
-		{
-			c = defaultConfig[i];
-			strJson.push_back(c);
-		}
+        strJson = defaultConfig;
     }
     else
     {
-		json.resize(jsonLength);
-
-		for (i = 0; i < jsonLength; i++)
-		{
-			c = *(uint8_t*)(XIP_BASE + JSON_STORAGE_ADDRESS + 4 + i);
-			strJson.push_back(c);
-		}
-		printf("\n%s\n\n", json.c_str());
+        const char *p = (const char*)(XIP_BASE + JSON_STORAGE_ADDRESS + 4);
+        strJson = std::string(p, p+jsonLength);
     }
+    printf("\n%s\n\n", strJson.c_str());
 }
 
 
@@ -464,7 +445,7 @@ void core1_entry()
                 }
                 prevState = currentState;
 
-                jsonFromFlash(strJson);
+                jsonFromFlash();
                 deserialiseJSON();
                 configThreads();
                 createThreads();
