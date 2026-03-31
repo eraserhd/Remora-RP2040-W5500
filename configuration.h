@@ -43,6 +43,12 @@
 #define JSON_UPLOAD_ADDRESS				PICO_FLASH_SIZE_BYTES - ((2 * 32)/4) * FLASH_SECTOR_SIZE
 #define JSON_STORAGE_ADDRESS 			PICO_FLASH_SIZE_BYTES - (32/4) * FLASH_SECTOR_SIZE
 
+#if (DEVICE_BOARD_NAME == W55RP20_EVB_PICO)
+#define DEFAULT_BLINKY_GPIO "GP19"
+#else
+#define DEFAULT_BLINKY_GPIO "GP25"
+#endif
+
 #define DEFAULT_CONFIG \
 "{\n" \
 "    \"Board\": \"PICO\",\n" \
@@ -51,7 +57,7 @@
 "            \"Thread\": \"Servo\",\n" \
 "            \"Type\": \"Blink\",\n" \
 "            \"Comment\": \"Blinky\",\n" \
-"            \"Pin\": \"GP25\",\n" \
+"            \"Pin\": \"" DEFAULT_BLINKY_GPIO "\",\n" \
 "            \"Frequency\": 2\n" \
 "        },\n" \
 "        {\n" \
