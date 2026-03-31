@@ -52,7 +52,8 @@ $ cmake --build build
 
 If you omit `-DBOARD_NAME`, it defaults to `W5500_EVB_PICO`.  Other
 supported boards are listed at the top of `CMakeLists.txt`.  This should work
-with all WIZnet boards.  I've only tested with:
+with all RP2040-based WIZnet boards (RP2350 ones do not build yet).  I've only
+tested with:
 
 * `W5500_EVB_PICO`
 * `W55RP20_EVB_PICO`
