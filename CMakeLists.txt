@@ -18,15 +18,19 @@ set(PICO_COPY_TO_RAM 1)
 pico_sdk_init()
 
 # Set board
-# set(BOARD_NAME WIZnet_Ethernet_HAT)
-# set(BOARD_NAME W5100S_EVB_PICO)
-set(BOARD_NAME W5500_EVB_PICO)
-# set(BOARD_NAME W55RP20_EVB_PICO)
-# set(BOARD_NAME W6100_EVB_PICO)
-# set(BOARD_NAME W6300_EVB_PICO)
-# set(BOARD_NAME W5500_EVB_PICO2)
-# set(BOARD_NAME W6100_EVB_PICO2)
-# set(BOARD_NAME W6300_EVB_PICO2)
+set(BOARD_NAME W5500_EVB_PICO CACHE STRING "WIZnet board selection")
+set_property(CACHE BOARD_NAME PROPERTY STRINGS
+    WIZnet_Ethernet_HAT
+    W5100S_EVB_PICO
+    W5500_EVB_PICO
+    W55RP20_EVB_PICO
+    W6100_EVB_PICO
+    W6300_EVB_PICO
+    W5100S_EVB_PICO2
+    W5500_EVB_PICO2
+    W6100_EVB_PICO2
+    W6300_EVB_PICO2
+)
 
 if(${BOARD_NAME} STREQUAL WIZnet_Ethernet_HAT)
     #set(PICO_PLATFORM rp2350) #If you are using WIZnet_ethernet_HAT with Pico2, uncomment it.
@@ -100,6 +104,7 @@ else()
     message(FATAL_ERROR "BOARD_NAME is wrong = ${BOARD_NAME}")
 endif()
 
+message(STATUS "BOARD_NAME = ${BOARD_NAME}")
 message(STATUS "WIZNET_CHIP = ${WIZNET_CHIP}")
 
 if(NOT DEFINED WIZNET_DIR)
@@ -162,6 +167,7 @@ target_link_libraries(remora
         pico_stdlib
         pico_multicore
         hardware_spi
+        hardware_pio
         hardware_dma
         hardware_pwm
         hardware_flash
@@ -172,7 +178,7 @@ target_link_libraries(remora
         )
 
  # disable usb output, enable uart output        
-pico_enable_stdio_usb(remora 0)
-pico_enable_stdio_uart(remora 1)
+pico_enable_stdio_usb(remora 1)
+pico_enable_stdio_uart(remora 0)
         
 pico_add_extra_outputs(remora)
