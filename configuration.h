@@ -75,16 +75,16 @@
 "            \"Type\": \"Stepgen\",\n" \
 "            \"Comment\": \"Z - Joint 2 step generator\",\n" \
 "            \"Joint Number\": 2,\n" \
-"            \"Step Pin\": \"GP06\",\n" \
-"            \"Direction Pin\": \"GP07\"\n" \
+"            \"Step Pin\": \"GP07\",\n" \
+"            \"Direction Pin\": \"GP08\"\n" \
 "        },\n" \
 "        {\n" \
 "            \"Thread\": \"Base\",\n" \
 "            \"Type\": \"Stepgen\",\n" \
 "            \"Comment\": \"A - Joint 3 step generator\",\n" \
 "            \"Joint Number\": 3,\n" \
-"            \"Step Pin\": \"GP08\",\n" \
-"            \"Direction Pin\": \"GP09\"\n" \
+"            \"Step Pin\": \"GP09\",\n" \
+"            \"Direction Pin\": \"GP10\"\n" \
 "        },\n" \
 "        {\n" \
 "            \"Thread\": \"Servo\",\n" \
