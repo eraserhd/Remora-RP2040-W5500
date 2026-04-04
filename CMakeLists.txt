@@ -149,12 +149,13 @@ add_executable(remora
         ${CMAKE_SOURCE_DIR}/modules/comms/RemoraComms.cpp
         ${CMAKE_SOURCE_DIR}/modules/blink/blink.cpp
         ${CMAKE_SOURCE_DIR}/modules/stepgen/stepgen.cpp
+        ${CMAKE_SOURCE_DIR}/modules/stepgen/piostepgen.cpp
         ${CMAKE_SOURCE_DIR}/modules/stepgen/threadstepgen.cpp
         ${CMAKE_SOURCE_DIR}/modules/digitalPin/digitalPin.cpp
         )
 
 pico_generate_pio_header(remora
-        ${CMAKE_SOURCE_DIR}/modules/stepgen/stepgen.pio
+        ${CMAKE_SOURCE_DIR}/modules/stepgen/piostepgen.pio
         )
 
 
