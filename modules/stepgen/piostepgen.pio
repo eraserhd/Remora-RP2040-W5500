@@ -22,6 +22,9 @@
 // | dirsetup/100.00587...ns or remaining stepspace/100.00587...ns (whichever is larger)           |ND|
 // +--------------------------------------------------------------+--------------------------------+--+
 //
+// D must be the same as last D, while ND is the new direction.  This will emit one last pulse then
+// hold for the next command.
+//
 // After both words are executed, the state machine will block waiting for the next TX FIFO word, which
 // should be the next FREQUENCY COMMAND, therefore it doubles as a ZERO FREQUENCY COMMAND:
 //
