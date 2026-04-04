@@ -152,6 +152,10 @@ add_executable(remora
         ${CMAKE_SOURCE_DIR}/modules/digitalPin/digitalPin.cpp
         )
 
+pico_generate_pio_header(remora
+        ${CMAKE_SOURCE_DIR}/modules/stepgen/stepgen.pio
+        )
+
 
 target_include_directories(remora PUBLIC
         ${LWIP_PATH}/src/include

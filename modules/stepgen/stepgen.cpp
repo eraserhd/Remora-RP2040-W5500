@@ -1,6 +1,7 @@
 
 #include "stepgen.h"
 #include "../remora.h"
+#include "stepgen.pio.h"
 
 Stepgen *Stepgen::load(JsonObject module)
 {
