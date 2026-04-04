@@ -3,6 +3,10 @@
 #include "../remora.h"
 #include "stepgen.pio.h"
 
+Stepgen::~Stepgen()
+{
+}
+
 Stepgen *Stepgen::load(JsonObject module)
 {
     const char* comment = module["Comment"];
@@ -12,12 +16,12 @@ Stepgen *Stepgen::load(JsonObject module)
     const char* dir = module["Direction Pin"];
 
     // create the step generator, register it in the thread
-    Stepgen* stepgen = new Stepgen(step, dir);
+    ThreadStepgen* stepgen = new ThreadStepgen(step, dir);
     baseThread->registerModule(stepgen);
     return stepgen;
 }
 
-Stepgen::Stepgen(std::string step, std::string direction)
+ThreadStepgen::ThreadStepgen(std::string step, std::string direction)
     : stepperPosition(0)
     , DDSaddValue(0)
     , DDSaccumulator(0)
@@ -26,7 +30,11 @@ Stepgen::Stepgen(std::string step, std::string direction)
 {
 }
 
-void Stepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
+ThreadStepgen::~ThreadStepgen()
+{
+}
+
+void ThreadStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
 {
     if (!enable)
     {
@@ -36,7 +44,12 @@ void Stepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t fre
     DDSaddValue = frequencyCommand * (float)(1 << STEPBIT) / (float)threadFrequency;
 }
 
-void Stepgen::update()
+int32_t ThreadStepgen::jointFeedback() const
+{
+    return stepperPosition;
+}
+
+void ThreadStepgen::update()
 {
     int32_t toAdd = this->DDSaddValue;
     if (0 == toAdd)
@@ -59,7 +72,7 @@ void Stepgen::update()
         --stepperPosition;
 }
 
-void Stepgen::updatePost()
+void ThreadStepgen::updatePost()
 {
     stepPin->set(false);  // Reset step pin
 }

@@ -8,7 +8,17 @@
 #include "../module.h"
 #include "../../drivers/pin/pin.h"
 
-class Stepgen : public Module
+class Stepgen
+{
+public:
+    virtual void frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand) = 0;
+    virtual int32_t jointFeedback() const = 0;
+    virtual ~Stepgen();
+
+    static Stepgen* load(JsonObject module);
+};
+
+class ThreadStepgen : public Module, public Stepgen
 {
 private:
     volatile int32_t stepperPosition;
@@ -18,15 +28,15 @@ private:
     Pin *stepPin, *directionPin;        // class object members - Pin objects
 
 public:
-    Stepgen(std::string, std::string);
+    ThreadStepgen(std::string, std::string);
+    ~ThreadStepgen() override;
 
-    static Stepgen* load(JsonObject module);
 
-    void frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand);
-    inline int32_t jointFeedback() const { return stepperPosition; }
+    void frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand) override;
+    int32_t jointFeedback() const override;
 
-    virtual void update(void);           // Module default interface
-    virtual void updatePost(void);
+    void update(void) override;           // Module default interface
+    void updatePost(void) override;
 };
 
 
