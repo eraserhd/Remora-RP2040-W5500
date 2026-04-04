@@ -47,6 +47,8 @@
 .program stepgen
 .side_set 1 opt
 
+    jmp start
+
     // Get the next command without blocking.  If the TX FIFO is
     // empty, this replays the last FREQUENCY COMMAND from X.
 maybe_get_next_command:
@@ -81,6 +83,7 @@ stepspace:
 dirsetup:
     jmp Y-- dirsetup
 
+start:
     // wait for next command
     pull block
 .wrap
