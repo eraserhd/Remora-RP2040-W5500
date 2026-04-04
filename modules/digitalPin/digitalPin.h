@@ -8,29 +8,26 @@
 #include "../../drivers/pin/pin.h"
 
 
-
 void createDigitalPin(void);
 
 class DigitalPin : public Module
 {
-	private:
+private:
+    volatile uint32_t *ptrData;     // pointer to the data source
+    int bitNumber;              // location in the data source
+    bool invert;
+    int mask;
 
-		volatile uint32_t *ptrData; 	// pointer to the data source
-		int bitNumber;				// location in the data source
-		bool invert;
-		int mask;
+    int mode;
+    int modifier;
+    std::string portAndPin;
 
-		int mode;
-        int modifier;
-		std::string portAndPin;
+    Pin *pin;
 
-		Pin *pin;
-
-	public:
-
-        DigitalPin(int, std::string, int, bool, int);
-		virtual void update(void);
-		virtual void slowUpdate(void);
+public:
+    DigitalPin(int, std::string, int, bool, int);
+    virtual void update(void);
+    virtual void slowUpdate(void);
 };
 
 #endif

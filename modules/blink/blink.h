@@ -13,21 +13,18 @@ void createBlink(void);
 
 class Blink : public Module
 {
+private:
+    bool        bState;
+    uint32_t    periodCount;
+    uint32_t    blinkCount;
 
-	private:
+    Pin *blinkPin;  // class object members - Pin objects
 
-		bool 		bState;
-		uint32_t 	periodCount;
-		uint32_t 	blinkCount;
+public:
+    Blink(std::string, uint32_t, uint32_t);
 
-		Pin *blinkPin;	// class object members - Pin objects
-
-	public:
-
-		Blink(std::string, uint32_t, uint32_t);
-
-		virtual void update(void);
-		virtual void slowUpdate(void);
+    virtual void update(void);
+    virtual void slowUpdate(void);
 };
 
 #endif

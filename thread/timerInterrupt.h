@@ -7,15 +7,13 @@ class pruTimer; // forward declaration
 
 class TimerInterrupt : public Interrupt
 {
-	private:
-	    
-		pruTimer* InterruptOwnerPtr;
-	
-	public:
+private:
+    pruTimer* InterruptOwnerPtr;
 
-		TimerInterrupt(int interruptNumber, pruTimer* ownerptr);
-    
-		void ISR_Handler(void);
+public:
+    TimerInterrupt(int interruptNumber, pruTimer* ownerptr);
+
+    void ISR_Handler(void);
 };
 
 #endif

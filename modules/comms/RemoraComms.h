@@ -12,21 +12,18 @@ class RemoraComms : public Module
 {
   private:
 
-	bool		data;
-	bool		status;
+    bool        data;
+    bool        status;
 
-	uint8_t		noDataCount;
+    uint8_t     noDataCount;
 
   public:
 
-	RemoraComms(void);
+    RemoraComms(void);
 
-	virtual void update(void);
-	void dataReceived();
-	bool getStatus();
+    virtual void update(void);
+    void dataReceived();
+    bool getStatus();
 };
-
-
-
 
 #endif

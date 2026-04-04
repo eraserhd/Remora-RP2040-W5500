@@ -8,23 +8,19 @@ class pruThread; // forward declaration
 
 class pruTimer
 {
-	friend class TimerInterrupt;
+    friend class TimerInterrupt;
+private:
+    TimerInterrupt*     interruptPtr;
+    uint8_t             slice;
+    uint32_t            frequency;
+    pruThread*          timerOwnerPtr;
 
-	private:
+    void startTimer(void);
+    void timerTick();           // Private timer tiggered method
 
-		TimerInterrupt* 	interruptPtr;
-		uint8_t				slice;
-		uint32_t 			frequency;
-		pruThread* 			timerOwnerPtr;
-
-		void startTimer(void);
-		void timerTick();			// Private timer tiggered method
-
-	public:
-
-		pruTimer(uint8_t slice, uint32_t frequency, pruThread* ownerPtr);
-        void stopTimer(void);
-
+public:
+    pruTimer(uint8_t slice, uint32_t frequency, pruThread* ownerPtr);
+    void stopTimer(void);
 };
 
 #endif

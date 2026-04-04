@@ -128,9 +128,9 @@ const char defaultConfig[] = DEFAULT_CONFIG;
 // 512 bytes of metadata in front of actual JSON file
 typedef struct
 {
-  uint32_t crc32;   		// crc32 of JSON
-  uint32_t length;			// length in words for CRC calculation
-  uint32_t jsonLength;  	// length in of JSON config in bytes
+  uint32_t crc32;           // crc32 of JSON
+  uint32_t length;          // length in words for CRC calculation
+  uint32_t jsonLength;      // length in of JSON config in bytes
   uint8_t padding[500];
 } metadata_t;
 #define METADATA_LEN    512
@@ -169,20 +169,20 @@ struct pbuf *p = NULL;
 
 int8_t checkJson()
 {
-	metadata_t* meta = (metadata_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS);
-	uint32_t* json = (uint32_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS + METADATA_LEN);
+    metadata_t* meta = (metadata_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS);
+    uint32_t* json = (uint32_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS + METADATA_LEN);
 
     uint32_t table[256];
     crc32::generate_table(table);
     int mod, padding;
 
-	// Check length is reasonable
-	if (meta->length > (32/4) * FLASH_SECTOR_SIZE)
-	{
-		newJson = false;
-		printf("JSON Config length incorrect\n");
-		return -1;
-	}
+    // Check length is reasonable
+    if (meta->length > (32/4) * FLASH_SECTOR_SIZE)
+    {
+        newJson = false;
+        printf("JSON Config length incorrect\n");
+        return -1;
+    }
 
     // for compatability with STM32 hardware CRC32, the config is padded to a 32 byte boundary
     mod = meta->jsonLength % 4;
@@ -196,7 +196,7 @@ int8_t checkJson()
     }
     printf("mod = %d, padding = %d\n", mod, padding);
 
-	// Compute CRC
+    // Compute CRC
     char* ptr = (char *)(XIP_BASE + JSON_UPLOAD_ADDRESS + METADATA_LEN);
     for (int i = 0; i < meta->jsonLength + padding; i++)
     {
@@ -204,34 +204,34 @@ int8_t checkJson()
         ptr++;
     }
 
-	printf("Length (words) = %d\n", meta->length);
-	printf("JSON length (bytes) = %d\n", meta->jsonLength);
-	printf("crc32 = %x\n", crc32);
+    printf("Length (words) = %d\n", meta->length);
+    printf("JSON length (bytes) = %d\n", meta->jsonLength);
+    printf("crc32 = %x\n", crc32);
 
-	// Check CRC
-	if (crc32 != meta->crc32)
-	{
-		newJson = false;
-		printf("JSON Config file CRC incorrect\n");
-		return -1;
-	}
+    // Check CRC
+    if (crc32 != meta->crc32)
+    {
+        newJson = false;
+        printf("JSON Config file CRC incorrect\n");
+        return -1;
+    }
 
-	// JSON is OK, don't check it again
-	newJson = false;
-	printf("JSON Config file received Ok\n");
-	return 1;
+    // JSON is OK, don't check it again
+    newJson = false;
+    printf("JSON Config file received Ok\n");
+    return 1;
 }
 
 
 void moveJson()
 {
-	uint8_t pages;
+    uint8_t pages;
     uint32_t i = 0;
-	metadata_t* meta = (metadata_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS);;
+    metadata_t* meta = (metadata_t*)(XIP_BASE + JSON_UPLOAD_ADDRESS);;
 
-	uint16_t jsonLength = meta->jsonLength;
+    uint16_t jsonLength = meta->jsonLength;
 
-	// erase the old JSON config file
+    // erase the old JSON config file
     uint32_t status = save_and_disable_interrupts();
     flash_range_erase(JSON_STORAGE_ADDRESS, (32/4) * FLASH_SECTOR_SIZE);
     restore_interrupts(status);
@@ -244,14 +244,14 @@ void moveJson()
     }
 
     printf("pages = %d\n", pages);
-	
+
     uint8_t data[pages * 256] = {0};
 
-	// store the length of the file in the 0th word
+    // store the length of the file in the 0th word
     data[0] = (uint8_t)((jsonLength & 0x00FF));
     data[1] = (uint8_t)((jsonLength & 0xFF00) >> 8);
-    
-    //The buffer argument points to the data to be written, which is of size size. 
+
+    //The buffer argument points to the data to be written, which is of size size.
     //This size must be a multiple of the "page size", which is defined as the constant FLASH_PAGE_SIZE, with a value of 256 bytes.
 
     for (i = 0; i < jsonLength; i++)
@@ -261,7 +261,7 @@ void moveJson()
 
     status = save_and_disable_interrupts();
     flash_range_program(JSON_STORAGE_ADDRESS, data, (pages * 256));
-    restore_interrupts(status); 
+    restore_interrupts(status);
 }
 
 
@@ -273,8 +273,8 @@ void jsonFromFlash()
     uint32_t jsonLength = *(uint32_t*)(XIP_BASE + JSON_STORAGE_ADDRESS);
     if (jsonLength == 0xFFFFFFFF)
     {
-    	printf("Flash storage location is empty - no config file\n");
-    	printf("Using default configuration\n\n");
+        printf("Flash storage location is empty - no config file\n");
+        printf("Using default configuration\n\n");
         strJson = defaultConfig;
     }
     else
@@ -354,9 +354,9 @@ void loadModules()
 {
     printf("\n4. Loading modules\n");
 
-	// Ethernet communication monitoring
-	comms = new RemoraComms();
-	servoThread->registerModule(comms);
+    // Ethernet communication monitoring
+    comms = new RemoraComms();
+    servoThread->registerModule(comms);
 
     if (configError) return;
 
@@ -381,18 +381,18 @@ void loadModules()
          }
         else if (!strcmp(thread,"Servo"))
         {
-        	if (!strcmp(type,"Blink"))
-			{
-				createBlink();
-			}
-        	else if (!strcmp(type,"Digital Pin"))
-			{
-				createDigitalPin();
-			}
-        	else if (!strcmp(type,"Spindle PWM"))
-			{
-				//createSpindlePWM();
-			}
+            if (!strcmp(type,"Blink"))
+            {
+                createBlink();
+            }
+            else if (!strcmp(type,"Digital Pin"))
+            {
+                createDigitalPin();
+            }
+            else if (!strcmp(type,"Spindle PWM"))
+            {
+                //createSpindlePWM();
+            }
         }
     }
 
@@ -436,8 +436,8 @@ void core1_entry()
 
     while (1)
     {
-	    switch(currentState){
-	        case ST_SETUP:
+        switch(currentState){
+            case ST_SETUP:
                 // do setup tasks
                 if (currentState != prevState)
                 {
@@ -488,15 +488,15 @@ void core1_entry()
                 }
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
-                servoThread->run();                
+                servoThread->run();
 
                 //wait for data before changing to running state
-                
+
                 if (comms->getStatus())
                 {
                     currentState = ST_RUNNING;
                 }
-                
+
                 break;
 
             case ST_RUNNING:
@@ -509,12 +509,12 @@ void core1_entry()
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
                 servoThread->run();
-                
+
                 if (comms->getStatus() == false)
                 {
                     currentState = ST_RESET;
                 }
-                
+
                 break;
 
             case ST_STOP:
@@ -557,7 +557,7 @@ void core1_entry()
             case ST_WDRESET:
                 // force a reset
                 break;
-	    }
+        }
     }
 
 }
@@ -739,30 +739,30 @@ void EthernetTasks()
 
 void udpServerInit(void)
 {
-   struct udp_pcb *upcb;
-   err_t err;
+    struct udp_pcb *upcb;
+    err_t err;
 
-   // UDP control block for data
-   upcb = udp_new();
-   err = udp_bind(upcb, &g_ip, 27181);  // 27181 is the server UDP port
+    // UDP control block for data
+    upcb = udp_new();
+    err = udp_bind(upcb, &g_ip, 27181);  // 27181 is the server UDP port
 
-   /* 3. Set a receive callback for the upcb */
-   if(err == ERR_OK)
-   {
-	   udp_recv(upcb, udp_data_callback, NULL);
-   }
-   else
-   {
-	   udp_remove(upcb);
-   }
+    /* 3. Set a receive callback for the upcb */
+    if(err == ERR_OK)
+    {
+        udp_recv(upcb, udp_data_callback, NULL);
+    }
+    else
+    {
+        udp_remove(upcb);
+    }
 }
 
 
 void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip_addr_t *addr, u16_t port)
 {
-	int txlen = 0;
+    int txlen = 0;
     int n;
-	struct pbuf *txBuf;
+    struct pbuf *txBuf;
     uint32_t status;
 
     //received data from host needs to go into the inactive buffer
@@ -770,14 +770,14 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
     //data sent to host needs to come from the active buffer
     txData_t* txBuffer = getCurrentTxBuffer(&txPingPongBuffer);
 
-	memcpy(&rxBuffer->rxBuffer, p->payload, p->len);
+    memcpy(&rxBuffer->rxBuffer, p->payload, p->len);
 
     //received a PRU request, need to copy data and then change pointer assignments.
     if (rxBuffer->header == PRU_READ || rxBuffer->header == PRU_WRITE) {
 
 
         if (rxBuffer->header == PRU_READ)
-        {        
+        {
             //if it is a read, need to swap the TX buffer over but the RX buffer needs to remain unchanged.
             //feedback data will now go into the alternate buffer
             while (baseThread->semaphore);
@@ -786,8 +786,8 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
 
             swapTxBuffers(&txPingPongBuffer);
 
-            baseThread->semaphore = false;            
-            
+            baseThread->semaphore = false;
+
             //txBuffer pointer is now directed at the 'old' data for transmission
             txBuffer->header = PRU_DATA;
             txlen = BUFFER_SIZE;
@@ -803,33 +803,33 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
             swapTxBuffers(&txPingPongBuffer);
             //frequency command will now come from the new data
             swapRxBuffers(&rxPingPongBuffer);
-            baseThread->semaphore = false;               
-            
+            baseThread->semaphore = false;
+
             //txBuffer pointer is now directed at the 'old' data for transmission
             txBuffer->header = PRU_ACKNOWLEDGE;
             txlen = BUFFER_SIZE;
             comms->dataReceived();
-        }	
+        }
     }
-   
-	// allocate pbuf from RAM
-	txBuf = pbuf_alloc(PBUF_TRANSPORT, txlen, PBUF_RAM);
 
-	// copy the data into the buffer
-	pbuf_take(txBuf, (char*)&txBuffer->txBuffer, txlen);
+    // allocate pbuf from RAM
+    txBuf = pbuf_alloc(PBUF_TRANSPORT, txlen, PBUF_RAM);
 
-	// Connect to the remote client
-	udp_connect(upcb, addr, port);
+    // copy the data into the buffer
+    pbuf_take(txBuf, (char*)&txBuffer->txBuffer, txlen);
 
-	// Send a Reply to the Client
-	udp_send(upcb, txBuf);
+    // Connect to the remote client
+    udp_connect(upcb, addr, port);
 
-	// free the UDP connection, so we can accept new clients
-	udp_disconnect(upcb);
+    // Send a Reply to the Client
+    udp_send(upcb, txBuf);
 
-	// Free the p_tx buffer
-	pbuf_free(txBuf);
+    // free the UDP connection, so we can accept new clients
+    udp_disconnect(upcb);
 
-	// Free the p buffer
-	pbuf_free(p);
+    // Free the p_tx buffer
+    pbuf_free(txBuf);
+
+    // Free the p buffer
+    pbuf_free(p);
 }

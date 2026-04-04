@@ -1,7 +1,6 @@
 
 #include "stepgen.h"
 #include "../remora.h"
-//#include "../boardconfig.h"
 
 
 /***********************************************************************
@@ -34,71 +33,71 @@ void createStepgen()
 ************************************************************************/
 
 Stepgen::Stepgen(int32_t threadFreq, int jointNumber, std::string step, std::string direction, int stepBit) :
-	jointNumber(jointNumber),
-	step(step),
-	direction(direction),
-	stepBit(stepBit)
+    jointNumber(jointNumber),
+    step(step),
+    direction(direction),
+    stepBit(stepBit)
 {
-	this->stepPin = new Pin(this->step, OUTPUT);
-	this->directionPin = new Pin(this->direction, OUTPUT);
-	this->DDSaccumulator = 0;
-	this->rawCount = 0;
-	this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;
-	this->mask = 1 << this->jointNumber;
-	this->isEnabled = false;
-	this->isForward = false;
+    this->stepPin = new Pin(this->step, OUTPUT);
+    this->directionPin = new Pin(this->direction, OUTPUT);
+    this->DDSaccumulator = 0;
+    this->rawCount = 0;
+    this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;
+    this->mask = 1 << this->jointNumber;
+    this->isEnabled = false;
+    this->isForward = false;
 }
 
 
 void Stepgen::update()
 {
-	// Use the standard Module interface to run makePulses()
-	this->makePulses();
+    // Use the standard Module interface to run makePulses()
+    this->makePulses();
 }
 
 void Stepgen::updatePost()
 {
-	this->stopPulses();
+    this->stopPulses();
 }
 
 void Stepgen::slowUpdate()
 {
-	return;
+    return;
 }
 
 void Stepgen::makePulses()
 {
-	int32_t stepNow = 0;
+    int32_t stepNow = 0;
 
-	this->rxData = getCurrentRxBuffer(&rxPingPongBuffer);
-	this->txData = getCurrentTxBuffer(&txPingPongBuffer);
+    this->rxData = getCurrentRxBuffer(&rxPingPongBuffer);
+    this->txData = getCurrentTxBuffer(&txPingPongBuffer);
 
-	this->isEnabled = ((rxData->jointEnable & this->mask) != 0);
+    this->isEnabled = ((rxData->jointEnable & this->mask) != 0);
 
-	if (this->isEnabled == true)  												// this Step generator is enables so make the pulses
-	{
-		this->frequencyCommand = rxData->jointFreqCmd[this->jointNumber];             // Get the latest frequency command via pointer to the data source
-		this->DDSaddValue = this->frequencyCommand * this->frequencyScale;		// Scale the frequency command to get the DDS add value
-		stepNow = this->DDSaccumulator;                           				// Save the current DDS accumulator value
-		this->DDSaccumulator += this->DDSaddValue;           	  				// Update the DDS accumulator with the new add value
-		stepNow ^= this->DDSaccumulator;                          				// Test for changes in the low half of the DDS accumulator
-		stepNow &= (1L << this->stepBit);                         				// Check for the step bit
-		//this->rawCount = this->DDSaccumulator >> this->stepBit;   				// Update the position raw count
+    if (this->isEnabled == true)                                                // this Step generator is enables so make the pulses
+    {
+        this->frequencyCommand = rxData->jointFreqCmd[this->jointNumber];             // Get the latest frequency command via pointer to the data source
+        this->DDSaddValue = this->frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
+        stepNow = this->DDSaccumulator;                                         // Save the current DDS accumulator value
+        this->DDSaccumulator += this->DDSaddValue;                              // Update the DDS accumulator with the new add value
+        stepNow ^= this->DDSaccumulator;                                        // Test for changes in the low half of the DDS accumulator
+        stepNow &= (1L << this->stepBit);                                       // Check for the step bit
+        //this->rawCount = this->DDSaccumulator >> this->stepBit;                   // Update the position raw count
 
-		if (this->DDSaddValue > 0)												// The sign of the DDS add value indicates the desired direction
-		{
-			this->isForward = true;
-		}
-		else
-		{
-			this->isForward = false;
-		}
+        if (this->DDSaddValue > 0)                                              // The sign of the DDS add value indicates the desired direction
+        {
+            this->isForward = true;
+        }
+        else
+        {
+            this->isForward = false;
+        }
 
-		if (stepNow)
-		{
-			this->directionPin->set(this->isForward);             		    	// Set direction pin
-			this->stepPin->set(true);											// Raise step pin
-			if (this->isForward)
+        if (stepNow)
+        {
+            this->directionPin->set(this->isForward);                           // Set direction pin
+            this->stepPin->set(true);                                           // Raise step pin
+            if (this->isForward)
             {
                 ++this->rawCount;
             }
@@ -106,9 +105,9 @@ void Stepgen::makePulses()
             {
                 --this->rawCount;
             }
-            txData->jointFeedback[this->jointNumber] = this->rawCount;	
-		}
-	}
+            txData->jointFeedback[this->jointNumber] = this->rawCount;  
+        }
+    }
 
 
 }
@@ -116,11 +115,11 @@ void Stepgen::makePulses()
 
 void Stepgen::stopPulses()
 {
-	this->stepPin->set(false);	// Reset step pin
+    this->stepPin->set(false);  // Reset step pin
 }
 
 
 void Stepgen::setEnabled(bool state)
 {
-	this->isEnabled = state;
+    this->isEnabled = state;
 }

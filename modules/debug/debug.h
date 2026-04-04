@@ -10,18 +10,18 @@
 class Debug : public Module
 {
 
-	private:
+    private:
 
-		bool 		bState;
+        bool        bState;
 
-		Pin*        debugPin;	// class object members - Pin objects
+        Pin*        debugPin;   // class object members - Pin objects
 
-	public:
+    public:
 
-		Debug(std::string, bool);
+        Debug(std::string, bool);
 
-		virtual void update(void);
-		virtual void slowUpdate(void);
+        virtual void update(void);
+        virtual void slowUpdate(void);
 };
 
 #endif

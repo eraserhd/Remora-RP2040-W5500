@@ -73,52 +73,52 @@ void createDigitalPin()
 //DigitalPin::DigitalPin(volatile uint32_t &ptrData, int mode, std::string portAndPin, int bitNumber, bool invert, int modifier) :
 DigitalPin::DigitalPin(int mode, std::string portAndPin, int bitNumber, bool invert, int modifier) :
     mode(mode),
-	portAndPin(portAndPin),
-	bitNumber(bitNumber),
+    portAndPin(portAndPin),
+    bitNumber(bitNumber),
     invert(invert),
-	modifier(modifier)
+    modifier(modifier)
 {
-	this->pin = new Pin(this->portAndPin, this->mode, this->modifier);		// Input 0x0, Output 0x1
-	this->mask = 1 << this->bitNumber;
+    this->pin = new Pin(this->portAndPin, this->mode, this->modifier);      // Input 0x0, Output 0x1
+    this->mask = 1 << this->bitNumber;
     //printf("ptrData = %x\n", ptrData); //can no longer just use a single pointer.
 }
 
 
 void DigitalPin::update()
 {
-	bool pinState;
+    bool pinState;
     rxData_t* currentRxPacket = getCurrentRxBuffer(&rxPingPongBuffer);
-	txData_t* currentTxPacket = getCurrentTxBuffer(&txPingPongBuffer);
+    txData_t* currentTxPacket = getCurrentTxBuffer(&txPingPongBuffer);
 
-	if (this->mode == 0x0)									// the pin is configured as an input
-	{
-		pinState = this->pin->get();
-		if(this->invert)
-		{
-			pinState = !pinState;
-		}
+    if (this->mode == 0x0)                                  // the pin is configured as an input
+    {
+        pinState = this->pin->get();
+        if(this->invert)
+        {
+            pinState = !pinState;
+        }
 
-		if (pinState == 1)								// input is high
-		{
-			currentTxPacket->inputs |= this->mask;
-		}
-		else											// input is low
-		{
-			currentTxPacket->inputs &= ~this->mask;
-		}
-	}
-	else												// the pin is configured as an output
-	{
-		pinState = currentRxPacket->outputs & this->mask;		// get the value of the bit in the data source
-		if(this->invert)
-		{
-			pinState = !pinState;
-		}
-		this->pin->set(pinState);			// simple conversion to boolean
-	}
+        if (pinState == 1)                              // input is high
+        {
+            currentTxPacket->inputs |= this->mask;
+        }
+        else                                            // input is low
+        {
+            currentTxPacket->inputs &= ~this->mask;
+        }
+    }
+    else                                                // the pin is configured as an output
+    {
+        pinState = currentRxPacket->outputs & this->mask;       // get the value of the bit in the data source
+        if(this->invert)
+        {
+            pinState = !pinState;
+        }
+        this->pin->set(pinState);           // simple conversion to boolean
+    }
 }
 
 void DigitalPin::slowUpdate()
 {
-	return;
+    return;
 }

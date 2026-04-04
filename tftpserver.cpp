@@ -114,7 +114,7 @@ static err_t IAP_tftp_send_ack_packet(struct udp_pcb *upcb, const ip_addr_t *to,
   /* create the maximum possible size packet that a TFTP ACK packet can be */
   char packet[TFTP_ACK_PKT_LEN];
 
-	memset(packet, 0, TFTP_ACK_PKT_LEN *sizeof(char));
+  memset(packet, 0, TFTP_ACK_PKT_LEN *sizeof(char));
 
   /* define the first two bytes of the packet */
   IAP_tftp_set_opcode(packet, TFTP_ACK);

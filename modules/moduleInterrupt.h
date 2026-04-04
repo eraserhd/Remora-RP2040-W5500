@@ -9,15 +9,15 @@
 
 class ModuleInterrupt : public Interrupt
 {
-	private:
-	    
-		Module* InterruptOwnerPtr;
-	
-	public:
-
-		ModuleInterrupt(int interruptNumber, Module* ownerptr);
+    private:
+        
+        Module* InterruptOwnerPtr;
     
-		void ISR_Handler(void);
+    public:
+
+        ModuleInterrupt(int interruptNumber, Module* ownerptr);
+    
+        void ISR_Handler(void);
 };
 
 #endif

@@ -13,16 +13,16 @@ Interrupt::Interrupt(void){}
 
 void Interrupt::Register(int interruptNumber, Interrupt* intThisPtr)
 {
-	printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
-	ISRVectorTable[interruptNumber] = intThisPtr;
+    printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
+    ISRVectorTable[interruptNumber] = intThisPtr;
 }
 
 void Interrupt::SLICE0_Wrapper(void)
 {
-	ISRVectorTable[0]->ISR_Handler();
+    ISRVectorTable[0]->ISR_Handler();
 }
 
 void Interrupt::SLICE1_Wrapper(void)
 {
-	ISRVectorTable[1]->ISR_Handler();
+    ISRVectorTable[1]->ISR_Handler();
 }
