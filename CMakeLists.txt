@@ -149,6 +149,7 @@ add_executable(remora
         ${CMAKE_SOURCE_DIR}/modules/comms/RemoraComms.cpp
         ${CMAKE_SOURCE_DIR}/modules/blink/blink.cpp
         ${CMAKE_SOURCE_DIR}/modules/stepgen/stepgen.cpp
+        ${CMAKE_SOURCE_DIR}/modules/stepgen/threadstepgen.cpp
         ${CMAKE_SOURCE_DIR}/modules/digitalPin/digitalPin.cpp
         )
 
