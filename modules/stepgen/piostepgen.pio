@@ -46,8 +46,11 @@
 // tally the joint feedback count for the axis.
 
 .program stepgen
-.side_set 1
+.pio_version 0 // RP2040
+.side_set 1 // Pulse is side set
 .clock_div 13.301
+.out 1 right
+.in 32 auto
 
     jmp start                     side 0
 
