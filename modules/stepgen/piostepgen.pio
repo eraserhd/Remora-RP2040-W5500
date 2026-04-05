@@ -4,11 +4,12 @@
 //                                          FREQUENCY COMMAND
 // +32 31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0+
 // +--+-----------------------------------------------------------------+--+--------------------------|
-// | 0|             stepspace/100.00587406015038ns                      | D| steplen/100.00587406...ns|
+// | 0|             stepspace/100.00587406015038ns                      | D|        steplen           |
 // +--+-----------------------------------------------------------------+--+--------------------------+
 //
 // The frequency command will generate pulses until a new command arrives on the FIFO.
-//
+// The value for steplen should be ceil(steplen_in_ns/100.00587406015038ns - 3).
+// The value for stepspace should be ceil(stepspace_in_ns/100.00587406015038ns - 7).
 //
 // The DIR command changes direction, and consists of two words in the TX FIFO:
 //
@@ -45,45 +46,42 @@
 // tally the joint feedback count for the axis.
 
 .program stepgen
-.side_set 1 opt
+.side_set 1
+    jmp start                     side 0
 
-    jmp start
-
-    // Get the next command without blocking.  If the TX FIFO is
-    // empty, this replays the last FREQUENCY COMMAND from X.
+    // Get the next command without blocking.  Loads last command from X if FIFO is empty.
 maybe_get_next_command:
-    pull
+    pull                          side 0
 .wrap_target
-    mov X, osr
+    mov x, osr                    side 1
 
     // wait for steplen with step pin high
-    out Y, 9 side 1
+    out y, 9                      side 1
 steplen:
-    jmp Y-- steplen
+    jmp y-- steplen               side 1
 
     // send back a bit indicating which direction we stepped
-    out Y, 1 side 0
-    in Y, 1
+    in osr, 1                     side 0
 
     // wait for stepspace or dirhold with step pin low
-    out Y, 21
+    out y, 21                     side 0
 stepspace:
-    jmp Y-- stepspace
+    jmp y-- stepspace             side 0
 
     // loop if it was just a FREQUENCY command
-    out Y, 1
-    jmp !y maybe_get_next_command
+    out y, 1                      side 0
+    jmp !y maybe_get_next_command side 0
 
-    // get ND and diresetup and change direction
-    pull block
-    out pins, 1
+    // get ND and direetup and change direction
+    pull block                    side 0
+    out pins, 1                   side 0
 
     // wait for dirsetup
-    out Y, 31
+    out y, 31                     side 0
 dirsetup:
-    jmp Y-- dirsetup
+    jmp y-- dirsetup              side 0
 
 start:
     // wait for next command
-    pull block
+    pull block                    side 0
 .wrap
