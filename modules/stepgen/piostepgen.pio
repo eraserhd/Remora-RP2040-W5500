@@ -9,7 +9,7 @@
 //
 // The frequency command will generate pulses until a new command arrives on the FIFO.
 // The value for steplen should be ceil(steplen_in_ns/100.00587406015038ns - 3).
-// The value for stepspace should be ceil(stepspace_in_ns/100.00587406015038ns - 7).
+// The value for stepspace should be ceil(stepspace_in_ns/100.00587406015038ns - 6).
 //
 // The DIR command changes direction, and consists of two words in the TX FIFO:
 //
