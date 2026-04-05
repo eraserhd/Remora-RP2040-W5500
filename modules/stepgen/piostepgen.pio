@@ -47,6 +47,8 @@
 
 .program stepgen
 .side_set 1
+.clock_div 13.301
+
     jmp start                     side 0
 
     // Get the next command without blocking.  Loads last command from X if FIFO is empty.
