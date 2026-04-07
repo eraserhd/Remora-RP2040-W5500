@@ -66,12 +66,14 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
     if (!pio_claim_free_sm_and_add_program(&stepgen_program, &pio, &sm, &offset))
     {
         printf("Could not claim state machine!\n");
+        return;
     }
 
     pio_gpio_init(pio, stepPin);
     if (PICO_OK != pio_sm_set_consecutive_pindirs(pio, sm, stepPin, 1, true))
     {
         printf("Could not set step pin %d direction!\n", stepPin);
+        return;
     }
     //FIXME: pull up/down?
 
@@ -79,16 +81,19 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
     if (PICO_OK != pio_sm_set_consecutive_pindirs(pio, sm, dirPin, 1, true))
     {
         printf("Could not set dir pin %d direction!\n", dirPin);
+        return;
     }
     //FIXME: pull up/down?
 
     auto config = stepgen_program_get_default_config(offset);
     sm_config_set_sideset_pins(&config, stepPin);
     sm_config_set_out_pins(&config, dirPin, 1);
+    sm_config_set_in_pins(&config, dirPin);
     sm_config_set_jmp_pin(&config, dirPin);
     if (PICO_OK != pio_sm_init(pio, sm, offset, &config))
     {
         printf("Could not configure PIO state machine!\n");
+        return;
     }
 
     pio_sm_set_enabled(pio, sm, true);
@@ -100,37 +105,47 @@ PioStepgen::~PioStepgen()
 {
 }
 
+static bool logging = false;
+
 void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
 {
-    if (!enable)
+    logging = 0 != frequencyCommand;
+    if (logging)
+        printf("fq = %d %d\n", enable, frequencyCommand);
+    if (!enable || 0 == frequencyCommand)
     {
         // Zero frequency command
-        pio_sm_put_blocking(pio, sm, (1u << 31) | ((uint32_t)lastDir << 9) | steplen);
-        pio_sm_put_blocking(pio, sm, (uint32_t)lastDir);
+        pio_sm_put_blocking(pio, sm, (1u << 22));
         return;
     }
-    uint32_t gap = stepspace * 2; //FIXME:
+    uint32_t gap = ceil(frequencyCommand / (float)threadFrequency / 100.00587406015038 - 6.0);
     bool dir = frequencyCommand > 0;
-    if (dir != lastDir)
-    {
+    //if (dir != lastDir)
+    //{
+        //gap=min(dirhold?,gap)
         // DIR COMMAND
-        pio_sm_put_blocking(pio, sm, (1u << 31) | (dirhold << 10) | ((uint32_t)lastDir << 9) | steplen);
-        pio_sm_put_blocking(pio, sm, max(dirsetup, gap) << 1| (uint32_t)lastDir); 
+        //pio_sm_put_blocking(pio, sm, (1u << 31) | (dirhold << 10) | ((uint32_t)lastDir << 9) | steplen);
+        //pio_sm_put_blocking(pio, sm, max(dirsetup, gap) << 1| (uint32_t)lastDir); 
         lastDir = dir;
         return;
-    }
+    //}
 
-    pio_sm_put_blocking(pio, sm, (gap << 10) | ((uint32_t)lastDir << 9) | steplen);
+    gap = min(steplen, gap);
+    pio_sm_put_blocking(pio, sm, (steplen << 23) | gap);
 }
 
 int32_t PioStepgen::jointFeedback()
 {
+    int n = 0;
+    uint32_t rx;
     // Read the steps recorded in the RX queue
     while (!pio_sm_is_rx_fifo_empty(pio, sm))
     {
-        uint32_t rx = pio_sm_get_blocking(pio, sm);
-        int32_t forward = __builtin_popcount(rx);
-        position = position + forward - (32 - forward);
+        rx = pio_sm_get_blocking(pio, sm);
+        position = position + (rx ? 1 : -1);
+        ++n;
     }
+    if (logging)
+        printf("%d pos = %d (%d)\n", stepPin, position, n);
     return position;
 }

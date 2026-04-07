@@ -48,9 +48,9 @@ next_command:
     pull                          side 0
 .wrap_target
     mov x, osr                    side 0
-    
+
     out y, 1                      side 0
-    jmp y-- dircmd
+    jmp y-- dircmd                side 0
 
     // wait for steplen with step pin high
     out y, 10                     side 1
@@ -68,16 +68,14 @@ stepspace:
 .wrap
 
 dircmd:
-    // loop if it was just a FREQUENCY command
     out y, 15                     side 0
 dirhold:
     jmp y-- dirhold               side 0
-    
+
     out pins, 1                   side 0 
 
     out y, 15                     side 0
 dirsetup:
     jmp y-- dirsetup              side 0
 
-    jmp next_command
-
+    jmp next_command              side 0
