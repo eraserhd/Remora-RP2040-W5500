@@ -12,7 +12,7 @@ class Stepgen
 {
 public:
     virtual void frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand) = 0;
-    virtual int32_t jointFeedback() const = 0;
+    virtual int32_t jointFeedback() = 0;
     virtual ~Stepgen();
 
     static Stepgen* load(JsonObject module);

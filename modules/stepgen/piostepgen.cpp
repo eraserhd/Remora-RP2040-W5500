@@ -1,5 +1,6 @@
 #include "piostepgen.h"
 #include "piostepgen.pio.h"
+#include <cmath>
 
 // Typical required stepper timings, in nanoseconds:
 //
@@ -34,9 +35,65 @@
        :gap-bits        gap-bits,
        :lowest-freq     (/ 1000000000 max-gap-value)}) ;=> {:steplen-bits 9, :gap-bits 21, :lowest-freq 4.768091501468429}
  */
-
-PioStepgen::PioStepgen(std::string, std::string)
+static int parse_pin(std::string const& name)
 {
+    if (name.length() != 4)
+        return -1;
+    if (name[0] != 'G' || name[1] != 'P')
+        return -1;
+    return 10*(name[2]-'0') + (name[3]-'0');
+}
+
+PioStepgen::PioStepgen(std::string step, std::string dir)
+    : stepPin(parse_pin(step))
+    , dirPin(parse_pin(dir))
+    , lastDir(true)
+    , position(0)
+{
+    //FIXME: configure
+    const uint32_t steplen_ns = 5000;
+    const uint32_t stepspace_ns = 5000;
+    const uint32_t dirhold_ns = 20000;
+    const uint32_t dirsetup_ns = 20000;
+
+    steplen = (uint32_t)ceil(double(steplen_ns)/100.00587406015038 - 3);
+    stepspace = (uint32_t)ceil(double(stepspace_ns)/100.00587406015038 - 6);
+    dirhold = (uint32_t)ceil(double(dirhold_ns)/100.00587406015038 - 3);
+    dirsetup = (uint32_t)ceil(double(dirsetup_ns)/100.00587406015038);
+
+    printf("steplen = %u, stepspace = %u, dirhold = %u, dirsetup = %u\n", steplen, stepspace, dirhold, dirsetup);
+
+    if (!pio_claim_free_sm_and_add_program(&stepgen_program, &pio, &sm, &offset))
+    {
+        printf("Could not claim state machine!\n");
+    }
+
+    pio_gpio_init(pio, stepPin);
+    if (PICO_OK != pio_sm_set_consecutive_pindirs(pio, sm, stepPin, 1, true))
+    {
+        printf("Could not set step pin %d direction!\n", stepPin);
+    }
+    //FIXME: pull up/down?
+
+    pio_gpio_init(pio, dirPin);
+    if (PICO_OK != pio_sm_set_consecutive_pindirs(pio, sm, dirPin, 1, true))
+    {
+        printf("Could not set dir pin %d direction!\n", dirPin);
+    }
+    //FIXME: pull up/down?
+
+    auto config = stepgen_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&config, stepPin);
+    sm_config_set_out_pins(&config, dirPin, 1);
+    sm_config_set_jmp_pin(&config, dirPin);
+    if (PICO_OK != pio_sm_init(pio, sm, offset, &config))
+    {
+        printf("Could not configure PIO state machine!\n");
+    }
+
+    pio_sm_set_enabled(pio, sm, true);
+
+    printf("Stepgen(%d,%d) finished initializing.\n", stepPin, dirPin);
 }
 
 PioStepgen::~PioStepgen()
@@ -45,9 +102,35 @@ PioStepgen::~PioStepgen()
 
 void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
 {
+    if (!enable)
+    {
+        // Zero frequency command
+        pio_sm_put_blocking(pio, sm, (1u << 31) | ((uint32_t)lastDir << 9) | steplen);
+        pio_sm_put_blocking(pio, sm, (uint32_t)lastDir);
+        return;
+    }
+    uint32_t gap = stepspace * 2; //FIXME:
+    bool dir = frequencyCommand > 0;
+    if (dir != lastDir)
+    {
+        // DIR COMMAND
+        pio_sm_put_blocking(pio, sm, (1u << 31) | (dirhold << 10) | ((uint32_t)lastDir << 9) | steplen);
+        pio_sm_put_blocking(pio, sm, max(dirsetup, gap) << 1| (uint32_t)lastDir); 
+        lastDir = dir;
+        return;
+    }
+
+    pio_sm_put_blocking(pio, sm, (gap << 10) | ((uint32_t)lastDir << 9) | steplen);
 }
 
-int32_t PioStepgen::jointFeedback() const
+int32_t PioStepgen::jointFeedback()
 {
-    return 0; //FIXME:
+    // Read the steps recorded in the RX queue
+    while (!pio_sm_is_rx_fifo_empty(pio, sm))
+    {
+        uint32_t rx = pio_sm_get_blocking(pio, sm);
+        int32_t forward = __builtin_popcount(rx);
+        position = position + forward - (32 - forward);
+    }
+    return position;
 }

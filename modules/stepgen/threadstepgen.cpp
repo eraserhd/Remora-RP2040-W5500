@@ -23,7 +23,7 @@ void ThreadStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32
     DDSaddValue = frequencyCommand * (float)(1 << STEPBIT) / (float)threadFrequency;
 }
 
-int32_t ThreadStepgen::jointFeedback() const
+int32_t ThreadStepgen::jointFeedback()
 {
     return stepperPosition;
 }

@@ -18,7 +18,7 @@ public:
 
 
     void frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand) override;
-    int32_t jointFeedback() const override;
+    int32_t jointFeedback() override;
 
     void update(void) override;           // Module default interface
     void updatePost(void) override;
