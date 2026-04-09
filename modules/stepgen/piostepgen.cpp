@@ -105,7 +105,7 @@ PioStepgen::~PioStepgen()
 {
 }
 
-static bool logging = false;
+static volatile bool logging = false;
 
 void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
 {
@@ -126,8 +126,8 @@ void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t 
         // DIR COMMAND
         //pio_sm_put_blocking(pio, sm, (1u << 31) | (dirhold << 10) | ((uint32_t)lastDir << 9) | steplen);
         //pio_sm_put_blocking(pio, sm, max(dirsetup, gap) << 1| (uint32_t)lastDir); 
-        lastDir = dir;
-        return;
+        //lastDir = dir;
+        //return;
     //}
 
     gap = min(steplen, gap);
@@ -138,6 +138,8 @@ int32_t PioStepgen::jointFeedback()
 {
     int n = 0;
     uint32_t rx;
+    if (logging)
+        printf("jointFeedback enter.\n");
     // Read the steps recorded in the RX queue
     while (!pio_sm_is_rx_fifo_empty(pio, sm))
     {
