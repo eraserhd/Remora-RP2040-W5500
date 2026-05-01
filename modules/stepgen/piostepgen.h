@@ -21,6 +21,8 @@ private:
     uint32_t dirhold;
     uint32_t dirsetup;
 
+    bool find_sm(void);
+
 public:
     PioStepgen(std::string, std::string);
     ~PioStepgen() override;

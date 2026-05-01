@@ -44,6 +44,38 @@ static int parse_pin(std::string const& name)
     return 10*(name[2]-'0') + (name[3]-'0');
 }
 
+bool PioStepgen::find_sm(void)
+{
+    static PIO last_pio = NULL;
+    static uint last_offset = 0;
+
+    // Try to claim a state machine on the last PIO block first -- we might
+    // be able to reuse the last program.
+    if (NULL != last_pio)
+    {
+        int ret = pio_claim_unused_sm(last_pio, false);
+        if (ret >= 0)
+        {
+            pio = last_pio;
+            sm = ret;
+            offset = last_offset;
+
+            printf("Reusing program in last PIO block.\n");
+            return true;
+        }
+    }
+
+    if (!pio_claim_free_sm_and_add_program(&stepgen_program, &pio, &sm, &offset))
+    {
+        printf("Could not claim state machine!\n");
+        return false;
+    }
+
+    last_pio = pio;
+    last_offset = offset;
+    return true;
+}
+
 PioStepgen::PioStepgen(std::string step, std::string dir)
     : stepPin(parse_pin(step))
     , dirPin(parse_pin(dir))
@@ -63,11 +95,10 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
 
     printf("steplen = %u, stepspace = %u, dirhold = %u, dirsetup = %u\n", steplen, stepspace, dirhold, dirsetup);
 
-    if (!pio_claim_free_sm_and_add_program(&stepgen_program, &pio, &sm, &offset))
-    {
-        printf("Could not claim state machine!\n");
+    if (!find_sm())
         return;
-    }
+
+    printf("Claimed PIO %p, sm = %u, offset = %u\n", pio, sm, offset);
 
     pio_gpio_init(pio, stepPin);
     if (PICO_OK != pio_sm_set_consecutive_pindirs(pio, sm, stepPin, 1, true))
