@@ -388,15 +388,12 @@ int main()
     IP4_ADDR(&g_mask, 255, 255, 255, 0);
     IP4_ADDR(&g_gateway, 10, 10, 10, 1);
 
-    /* Grant high bus priority to the second core. */
-    bus_ctrl_hw->priority = BUSCTRL_BUS_PRIORITY_PROC1_BITS;
-
     stdio_init_all();
 
     sleep_ms(1000 * 3); // wait for 3 seconds
 
     setvbuf(stdout, NULL, _IONBF, 0);
-    printf("\nRemora for RP2040 starting (core0)...\n\n\r");
+    printf("\nRemora for RP2040 starting (core0, clock=%d)...\n\n\r", clock_get_hz(clk_sys));
 
     EthernetInit();
     udpServerInit();
@@ -404,6 +401,9 @@ int main()
 
     // launch main Remora code on the second core
     multicore_launch_core1(core1_entry);
+    /* Grant high bus priority to the second core. */
+    bus_ctrl_hw->priority = BUSCTRL_BUS_PRIORITY_PROC1_BITS;
+
 
     while (1)
     {
