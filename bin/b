@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -eo pipefail
+
+cmake --build build
+sudo mount /dev/sda1 /tmp/rp
+sudo cp build/remora.uf2 /tmp/rp/
+sync
+sudo umount /tmp/rp

@@ -35,6 +35,7 @@
           shellHook = ''
             export PICO_SDK_PATH="${pico-sdk}"
             export PICO_TOOLCHAIN_PATH="${pkgs.gcc-arm-embedded}"
+            export PATH="./bin:$PATH"
 
             echo "Remora RP2040-W5500 build environment"
             echo "======================================"
