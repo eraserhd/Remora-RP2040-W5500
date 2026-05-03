@@ -7,12 +7,6 @@
 #include "runner.h"
 #include "pruThread.h"
 
-void InterruptRunContext::run(pruThread* thread)
-{
-    thread->execute = true;
-    thread->run();
-}
-
 void NormalRunContext::run(pruThread* thread)
 {
     thread->execute = true;

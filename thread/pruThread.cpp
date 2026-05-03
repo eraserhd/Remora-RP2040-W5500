@@ -30,9 +30,7 @@ pruThread::pruThread(uint8_t slice)
 
 void pruThread::startThread(void)
 {
-    if (BASE_SLICE == slice)
-        BaseThreadRunner::start(this);
-    else if (SERVO_SLICE == slice)
+    if (SERVO_SLICE == slice)
         ServoThreadRunner::start(this);
 }
 
@@ -47,20 +45,12 @@ void pruThread::run(void)
     if(!this->execute)
         return; 
     
-    if (this->slice == BASE_SLICE) {
-        gpio_put(6, 1);
-    }
-
     if (this->slice == SERVO_SLICE) {
         gpio_put(27, 1);
     }
 
     for (auto iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModule();
     for (auto iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModulePost();
-
-    if (this->slice == BASE_SLICE){
-        gpio_put(6, 0);
-    }
 
     if (this->slice == SERVO_SLICE){
         gpio_put(27, 0);

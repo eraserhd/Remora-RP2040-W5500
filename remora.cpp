@@ -341,14 +341,6 @@ void loadModules()
 void core1_entry()
 {
     printf("\nRemora for RP2040 starting (core1)...\n\r");
-    printf("\n## Entering SETUP state\n\n");
-
-    jsonFromFlash();
-    deserialiseJSON();
-    createThreads();
-    loadModules();
-
-    printf("\n## Entering START state\n");
 
     printf("\nStarting the SERVO thread\n");
     servoThread->startThread();
@@ -394,11 +386,14 @@ int main()
     udpServerInit();
     IAP_tftpd_init();
 
-    // launch main Remora code on the second core
-    multicore_launch_core1(core1_entry);
-    /* Grant high bus priority to the second core. */
-    bus_ctrl_hw->priority = BUSCTRL_BUS_PRIORITY_PROC1_BITS;
+    printf("\n## Entering SETUP state\n\n");
 
+    jsonFromFlash();
+    deserialiseJSON();
+    createThreads();
+    loadModules();
+
+    printf("\n## Entering START state\n");
 
     while (1)
     {

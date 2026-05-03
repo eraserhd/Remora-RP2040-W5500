@@ -8,11 +8,6 @@
 
 class pruThread; // forward declaration
 
-struct InterruptRunContext
-{
-    static void run(pruThread* thread);
-};
-
 struct NormalRunContext
 {
     static void run(pruThread* thread);
@@ -54,7 +49,6 @@ public:
 template<int TimerNumber, int32_t Freq, typename RunContext>
 pruThread *ThreadRunner<TimerNumber,Freq,RunContext>::thread = NULL;
 
-typedef ThreadRunner<0, PRU_BASEFREQ, InterruptRunContext> BaseThreadRunner;
 typedef ThreadRunner<1, PRU_SERVOFREQ, NormalRunContext> ServoThreadRunner;
 
 #endif
