@@ -42,41 +42,42 @@
 .clock_div 13.301
 .in 32 auto
 
-    jmp start                     side 0
-
     // Get the next command without blocking.  Loads last command from X if FIFO is empty.
-maybe_get_next_command:
+    // The first command must be in the TX FIFO when the state machine is started.
+next_command:
     pull                          side 0
 .wrap_target
-    mov x, osr                    side 1
+    mov x, osr                    side 0
+    
+    out y, 1                      side 0
+    jmp y-- dircmd
 
     // wait for steplen with step pin high
-    out y, 9                      side 1
+    out y, 10                     side 1
 steplen:
     jmp y-- steplen               side 1
 
     // send back a bit indicating which direction we stepped
-    in osr, 1                     side 0
+    // FIXME: send 1 bit?
+    in pins, 1                    side 0
 
     // wait for stepspace or dirhold with step pin low
     out y, 21                     side 0
 stepspace:
     jmp y-- stepspace             side 0
+.wrap
 
+dircmd:
     // loop if it was just a FREQUENCY command
-    out y, 1                      side 0
-    jmp !y maybe_get_next_command side 0
+    out y, 15                     side 0
+dirhold:
+    jmp y-- dirhold               side 0
+    
+    out pins, 1                   side 0 
 
-    // get ND and direetup and change direction
-    pull block                    side 0
-    out pins, 1                   side 0
-
-    // wait for dirsetup
-    out y, 31                     side 0
+    out y, 15                     side 0
 dirsetup:
     jmp y-- dirsetup              side 0
 
-start:
-    // wait for next command
-    pull block                    side 0
-.wrap
+    jmp next_command
+
