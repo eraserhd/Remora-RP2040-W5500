@@ -4,7 +4,7 @@
 //                                          FREQUENCY COMMAND
 // +31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0+
 // +--------------------------------------------------------------+-----------------------------+--|
-// |          stepspace/100.00587406015038ns                      |           steplen           | 0|
+// |          stepspace/100ns                                     |           steplen           | 0|
 // +--------------------------------------------------------------+-----------------------------+--+
 //
 // The frequency command will generate pulses until a new command arrives on the FIFO.
@@ -39,27 +39,26 @@
 .program stepgen
 .pio_version 0 // RP2040
 .side_set 1 // Pulse is side set
-.clock_div 13.301
+.clock_div 6.25
 .in 32 auto
 
     // Get the next command without blocking.  Loads last command from X if FIFO is empty.
     // The first command must be in the TX FIFO when the state machine is started.
-next_command:
     pull                          side 0
+exec_command:
 .wrap_target
     mov x, osr                    side 0
 
     out y, 1                      side 0
     jmp y-- dircmd                side 0
 
-    // wait for steplen with step pin high
+    // wait for steplen with step pin high, push direction
+    // FIXME: Instead of push, set autopush width
     out y, 10                     side 1
+    in pins, 1                    side 1
+    push                          side 1
 steplen:
     jmp y-- steplen               side 1
-
-    // send back a bit indicating which direction we stepped
-    // FIXME: send 1 bit?
-    in pins, 1                    side 0
 
     // wait for stepspace or dirhold with step pin low
     out y, 21                     side 0
@@ -78,4 +77,5 @@ dirhold:
 dirsetup:
     jmp y-- dirsetup              side 0
 
-    jmp next_command              side 0
+    pull block                    side 0
+    jmp exec_command              side 0

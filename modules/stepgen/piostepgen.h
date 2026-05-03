@@ -21,7 +21,9 @@ private:
     uint32_t dirhold;
     uint32_t dirsetup;
 
+    friend void pio_rx_irq_handler(void);
     bool find_sm(void);
+    void send_pio_command(uint32_t cmd);
 
 public:
     PioStepgen(std::string, std::string);

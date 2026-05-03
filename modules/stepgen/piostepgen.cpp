@@ -12,28 +12,26 @@
 // direction setup   20,000      125 200,000
 //
 // There are 1,000,000,000 nanoseconds in a second.
-// The Pico runs at 133Mhz.
-// This works out to be 7.518796992481203ns per clock cycle.
-// 
-// (/ 100 7.518796992481203) ;=> 13.3
-// So we'll set the PIO divider to 13 and 77/256 (~ 13.30078125)
-// With error, that's (/ 1000000000.0 (/ 133000000.0 (+ 13 77/256))) ;=> 100.00587406015038
+// The Pico runs at 125Mhz.
+// (/ 1000000000.0 125000000000) ;=> 0.008
+// This works out to be 8ns per clock cycle.
+// We'll set the divider to (/ 50 8.0) ;=> 6.25
 //
 // stepspace (which is just a minimum gap value) is handled before passing to
 // the PIO.
 /*
-    (let [cycle-ns      100.00587406015038
+    (let [cycle-ns      50
           max-steplen   30000
           max-dirhold   24000
           max-dirsetup  200000
           bits          (fn [max-value]
                          (long (Math/ceil (/ (Math/log (/ max-value cycle-ns)) (Math/log 2)))))
           steplen-bits  (bits max-steplen)
-          gap-bits      (- 32 1 1 steplen-bits)
+          gap-bits      (- 32 1 steplen-bits)
           max-gap-value (* cycle-ns (Math/pow 2 gap-bits))]
       {:steplen-bits    steplen-bits,
        :gap-bits        gap-bits,
-       :lowest-freq     (/ 1000000000 max-gap-value)}) ;=> {:steplen-bits 9, :gap-bits 21, :lowest-freq 4.768091501468429}
+       :lowest-freq     (/ 1000000000 max-gap-value)}) ;=> {:steplen-bits 10, :gap-bits 21, :lowest-freq 9.5367431640625}
  */
 static int parse_pin(std::string const& name)
 {
@@ -42,6 +40,20 @@ static int parse_pin(std::string const& name)
     if (name[0] != 'G' || name[1] != 'P')
         return -1;
     return 10*(name[2]-'0') + (name[3]-'0');
+}
+
+std::vector<PioStepgen*> stepgens;
+
+void pio_rx_irq_handler(void)
+{
+    for (auto* stepgen : stepgens)
+    {
+        while (!pio_sm_is_rx_fifo_empty(stepgen->pio, stepgen->sm))
+        {
+            auto rx = pio_sm_get(stepgen->pio, stepgen->sm);
+            stepgen->position += (rx ? 1 : -1);
+        }
+    }
 }
 
 bool PioStepgen::find_sm(void)
@@ -71,9 +83,32 @@ bool PioStepgen::find_sm(void)
         return false;
     }
 
+    if (pio == pio0)
+    {
+        irq_add_shared_handler(PIO0_IRQ_0, pio_rx_irq_handler, 0);
+        irq_set_enabled(PIO0_IRQ_0, true);
+    }
+    else if (pio == pio1)
+    {
+        irq_add_shared_handler(PIO1_IRQ_0, pio_rx_irq_handler, 0);
+        irq_set_enabled(PIO1_IRQ_0, true);
+    }
+    //FIXME: RP2350
+
     last_pio = pio;
     last_offset = offset;
     return true;
+}
+
+void PioStepgen::send_pio_command(uint32_t cmd)
+{
+    if (pio_sm_is_tx_fifo_full(pio, sm))
+    {
+        printf("tx is full!\n");
+        return;
+    }
+    //printf("put %x\n", cmd);
+    pio_sm_put(pio, sm, cmd);
 }
 
 PioStepgen::PioStepgen(std::string step, std::string dir)
@@ -88,10 +123,10 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
     const uint32_t dirhold_ns = 20000;
     const uint32_t dirsetup_ns = 20000;
 
-    steplen = (uint32_t)ceil(double(steplen_ns)/100.00587406015038 - 3);
-    stepspace = (uint32_t)ceil(double(stepspace_ns)/100.00587406015038 - 6);
-    dirhold = (uint32_t)ceil(double(dirhold_ns)/100.00587406015038 - 3);
-    dirsetup = (uint32_t)ceil(double(dirsetup_ns)/100.00587406015038);
+    steplen = (uint32_t)ceil(double(steplen_ns)/100 - 3);
+    stepspace = (uint32_t)ceil(double(stepspace_ns)/100 - 6);
+    dirhold = (uint32_t)ceil(double(dirhold_ns)/100 - 3);
+    dirsetup = (uint32_t)ceil(double(dirsetup_ns)/100);
 
     printf("steplen = %u, stepspace = %u, dirhold = %u, dirsetup = %u\n", steplen, stepspace, dirhold, dirsetup);
 
@@ -99,6 +134,8 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
         return;
 
     printf("Claimed PIO %p, sm = %u, offset = %u\n", pio, sm, offset);
+
+    pio_set_irq0_source_enabled(pio, (pio_interrupt_source_t)(pis_sm0_rx_fifo_not_empty << sm), true);
 
     pio_gpio_init(pio, stepPin);
     if (PICO_OK != pio_sm_set_consecutive_pindirs(pio, sm, stepPin, 1, true))
@@ -127,6 +164,8 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
         return;
     }
 
+    stepgens.push_back(this);
+    pio_sm_put_blocking(pio, sm, (uint32_t(lastDir) << 16) | 1);
     pio_sm_set_enabled(pio, sm, true);
 
     printf("Stepgen(%d,%d) finished initializing.\n", stepPin, dirPin);
@@ -142,43 +181,27 @@ void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t 
 {
     logging = 0 != frequencyCommand;
     if (logging)
-        printf("fq = %d %d\n", enable, frequencyCommand);
+        printf("fq = %d %d (%d)\n", enable, frequencyCommand, was_fired);
     if (!enable || 0 == frequencyCommand)
     {
         // Zero frequency command
-        pio_sm_put_blocking(pio, sm, (1u << 22));
+        pio_sm_put_blocking(pio, sm, (uint32_t(lastDir) << 16) | 1);
         return;
     }
-    uint32_t gap = ceil(frequencyCommand / (float)threadFrequency / 100.00587406015038 - 6.0);
     bool dir = frequencyCommand > 0;
-    //if (dir != lastDir)
-    //{
-        //gap=min(dirhold?,gap)
+    if (dir != lastDir)
+    {
         // DIR COMMAND
-        //pio_sm_put_blocking(pio, sm, (1u << 31) | (dirhold << 10) | ((uint32_t)lastDir << 9) | steplen);
-        //pio_sm_put_blocking(pio, sm, max(dirsetup, gap) << 1| (uint32_t)lastDir); 
-        //lastDir = dir;
-        //return;
-    //}
+        pio_sm_put_blocking(pio, sm, (dirsetup << 17) | (uint32_t(dir) << 16) | (dirhold << 1) | 1);
+        lastDir = dir;
+    }
 
+    uint32_t gap = ceil(frequencyCommand / (float)threadFrequency / 100.00587406015038 - 6.0);
     gap = min(steplen, gap);
-    pio_sm_put_blocking(pio, sm, (steplen << 23) | gap);
+    pio_sm_put_blocking(pio, sm, (gap << 11) | (steplen << 1));
 }
 
 int32_t PioStepgen::jointFeedback()
 {
-    int n = 0;
-    uint32_t rx;
-    if (logging)
-        printf("jointFeedback enter.\n");
-    // Read the steps recorded in the RX queue
-    while (!pio_sm_is_rx_fifo_empty(pio, sm))
-    {
-        rx = pio_sm_get_blocking(pio, sm);
-        position = position + (rx ? 1 : -1);
-        ++n;
-    }
-    if (logging)
-        printf("%d pos = %d (%d)\n", stepPin, position, n);
     return position;
 }
