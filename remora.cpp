@@ -93,7 +93,6 @@ bool configError = false;
 
 // pointers to objects with global scope
 pruThread* servoThread;
-pruThread* baseThread;
 RemoraComms* comms;
 Stepgen *stepGenerators[JOINTS] = {};
 DigitalPin *inputs[sizeof(txData_t::inputs)*8] = {};
@@ -350,10 +349,6 @@ void core1_entry()
     loadModules();
 
     printf("\n## Entering START state\n");
-
-    // Start the threads
-    printf("\nStarting the BASE thread\n");
-    baseThread->startThread();
 
     printf("\nStarting the SERVO thread\n");
     servoThread->startThread();

@@ -10,7 +10,6 @@
 extern JsonObject module;
 
 // pointers to objects with global scope
-extern pruThread* baseThread;
 extern pruThread* servoThread;
 
 #endif
