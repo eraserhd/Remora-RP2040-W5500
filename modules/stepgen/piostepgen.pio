@@ -3,43 +3,34 @@
 //
 //                                          FREQUENCY COMMAND
 // +31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0+
-// +--+ -------------------------------------------------------------+--+--------------------------|
-// | 0|          stepspace/100.00587406015038ns                      | D|        steplen           |
-// +--+--------------------------------------------------------------+--+--------------------------+
+// +--------------------------------------------------------------+-----------------------------+--|
+// |          stepspace/100.00587406015038ns                      |           steplen           | 0|
+// +--------------------------------------------------------------+-----------------------------+--+
 //
 // The frequency command will generate pulses until a new command arrives on the FIFO.
 // The value for steplen should be ceil(steplen_in_ns/100.00587406015038ns - 3).
 // The value for stepspace should be ceil(stepspace_in_ns/100.00587406015038ns - 6).
 //
-// The DIR command changes direction, and consists of two words in the TX FIFO:
+// The DIR command changes direction:
 //
 //                                              DIR COMMAND
 // +31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0+
-// +--+--------------------------------------------------------------+--+--------------------------|
-// | 1|          dirhold/100.00587406015038ns                        | D| steplen/100.00587406...ns|
-// +--+--------------------------------------------------------------+--+--------------------------+
-// +31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0+
-// +-----------------------------------------------------------+--------------------------------+--|
-// | dirsetup/100.00587...ns or remaining stepspace/100.00587...ns (whichever is larger)        |ND|
-// +-----------------------------------------------------------+--------------------------------+--+
+// +--------------------------------------------+--+--------------------------------------------+--|
+// |                dirsetup                    |ND|             dirhold                        | 1|
+// +--------------------------------------------+--+--------------------------------------------+--+
 //
-// D must be the same as last D, while ND is the new direction.  This will emit one last pulse then
-// hold for the next command.
+// ND is the new direction.  
 //
 // After both words are executed, the state machine will block waiting for the next TX FIFO word, which
 // should be the next FREQUENCY COMMAND, therefore it doubles as a ZERO FREQUENCY COMMAND:
 //
 //                                          ZERO FREQUENCY COMMAND
 // +31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0+
-// +--+--------------------------------------------------------------+--+--------------------------|
-// | 1|                                                             0| D| steplen/100.00587406...ns|
-// +--+--------------------------------------------------------------+--+--------------------------+
-// +31 30 29 28 27 26 25 24 23 22 21 20 19 18 17 16 15 14 13 12 11 10  9  8  7  6  5  4  3  2  1  0+
-// +--------------------------------------------------------------------------------------------+--|
-// |                                                                                           0|ND|
-// +--------------------------------------------------------------------------------------------+--+
+// +--------------------------------------------+--+--------------------------------------------+--|
+// |                                         0  | D|                                         0  | 1|
+// +--------------------------------------------+--+--------------------------------------------+--+
 //
-// D must be the same as last D.  This will emit one last pulse then hold for the next command.
+// D must be the same as last D.  This will hold for the next command.
 //
 // Every time a step is generated, the one-bit D (direction) is shifted into ISR, and every 32 steps it
 // will get sent to the RX FIFO.  The non-PIO code needs to leisurely read, count 0 and 1 bits, and
