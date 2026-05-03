@@ -14,10 +14,10 @@ typedef union
     struct
     {
         int32_t header;
-        volatile int32_t jointFreqCmd[JOINTS];  // Base thread commands ?? - basically motion
+        int32_t jointFreqCmd[JOINTS];  // Base thread commands ?? - basically motion
         float setPoint[VARIABLES];        // Servo thread commands ?? - temperature SP, PWM etc
         uint8_t jointEnable;
-        volatile uint32_t outputs;
+        uint32_t outputs;
         uint8_t spare0;
     };
 } rxData_t;
