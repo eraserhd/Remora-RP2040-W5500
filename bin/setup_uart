@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-stty -F "$1" 115200 cs8 -cstopb -parenb -crtscts raw
+readonly TTY=${1-/dev/ttyUSB0}
+stty -F "$TTY" 115200 cs8 -cstopb -parenb -crtscts raw
