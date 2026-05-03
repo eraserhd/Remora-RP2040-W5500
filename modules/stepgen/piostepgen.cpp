@@ -13,9 +13,9 @@
 //
 // There are 1,000,000,000 nanoseconds in a second.
 // The Pico runs at 125Mhz.
-// (/ 1000000000.0 125000000000) ;=> 0.008
+// (/ 125000000000 1000000000.0) ;=> 125.0 cycles per nanosecond
 // This works out to be 8ns per clock cycle.
-// We'll set the divider to (/ 50 8.0) ;=> 6.25
+// We'll set the divider to (* 50 125) ;=> 6250
 //
 // stepspace (which is just a minimum gap value) is handled before passing to
 // the PIO.
@@ -83,17 +83,9 @@ bool PioStepgen::find_sm(void)
         return false;
     }
 
-    if (pio == pio0)
-    {
-        irq_add_shared_handler(PIO0_IRQ_0, pio_rx_irq_handler, 0);
-        irq_set_enabled(PIO0_IRQ_0, true);
-    }
-    else if (pio == pio1)
-    {
-        irq_add_shared_handler(PIO1_IRQ_0, pio_rx_irq_handler, 0);
-        irq_set_enabled(PIO1_IRQ_0, true);
-    }
-    //FIXME: RP2350
+    auto irqn = PIO_IRQ_NUM(pio, 0);
+    irq_add_shared_handler(irqn, pio_rx_irq_handler, 0);
+    irq_set_enabled(irqn, true);
 
     last_pio = pio;
     last_offset = offset;
@@ -104,10 +96,9 @@ void PioStepgen::send_pio_command(uint32_t cmd)
 {
     if (pio_sm_is_tx_fifo_full(pio, sm))
     {
-        printf("tx is full!\n");
+        printf("tx is full! (pio = %d, sm = %d, offset = %d, pc = %d)\n", PIO_NUM(pio), sm, offset, pio_sm_get_pc(pio, sm));
         return;
     }
-    //printf("put %x\n", cmd);
     pio_sm_put(pio, sm, cmd);
 }
 
@@ -123,10 +114,10 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
     const uint32_t dirhold_ns = 20000;
     const uint32_t dirsetup_ns = 20000;
 
-    steplen = (uint32_t)ceil(double(steplen_ns)/100 - 3);
-    stepspace = (uint32_t)ceil(double(stepspace_ns)/100 - 6);
-    dirhold = (uint32_t)ceil(double(dirhold_ns)/100 - 3);
-    dirsetup = (uint32_t)ceil(double(dirsetup_ns)/100);
+    steplen = (uint32_t)ceil(double(steplen_ns)/50 - 3);
+    stepspace = (uint32_t)ceil(double(stepspace_ns)/50 - 4); // Could be negative
+    dirhold = (uint32_t)ceil(double(dirhold_ns)/50 - 3);
+    dirsetup = (uint32_t)ceil(double(dirsetup_ns)/50 - 7);
 
     printf("steplen = %u, stepspace = %u, dirhold = %u, dirsetup = %u\n", steplen, stepspace, dirhold, dirsetup);
 
@@ -175,30 +166,26 @@ PioStepgen::~PioStepgen()
 {
 }
 
-static volatile bool logging = false;
-
 void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
 {
-    logging = 0 != frequencyCommand;
-    if (logging)
-        printf("fq = %d %d (%d)\n", enable, frequencyCommand, was_fired);
     if (!enable || 0 == frequencyCommand)
     {
         // Zero frequency command
-        pio_sm_put_blocking(pio, sm, (uint32_t(lastDir) << 16) | 1);
+        send_pio_command((uint32_t(lastDir) << 16) | 1);
         return;
     }
     bool dir = frequencyCommand > 0;
     if (dir != lastDir)
     {
         // DIR COMMAND
-        pio_sm_put_blocking(pio, sm, (dirsetup << 17) | (uint32_t(dir) << 16) | (dirhold << 1) | 1);
+        send_pio_command((dirsetup << 17) | (uint32_t(dir) << 16) | (dirhold << 1) | 1);
         lastDir = dir;
     }
 
-    uint32_t gap = ceil(frequencyCommand / (float)threadFrequency / 100.00587406015038 - 6.0);
-    gap = min(steplen, gap);
-    pio_sm_put_blocking(pio, sm, (gap << 11) | (steplen << 1));
+    uint32_t cycles = (1.0 / frequencyCommand) * 1000000000.0 / 50.0;
+    cycles = max(cycles, steplen + stepspace);
+    uint32_t gap = cycles - steplen;
+    send_pio_command((gap << 11) | (steplen << 1));
 }
 
 int32_t PioStepgen::jointFeedback()

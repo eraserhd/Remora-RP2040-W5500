@@ -39,7 +39,7 @@
 .program stepgen
 .pio_version 0 // RP2040
 .side_set 1 // Pulse is side set
-.clock_div 6.25
+.clock_div 6250
 .in 32 auto
 
     // Get the next command without blocking.  Loads last command from X if FIFO is empty.
