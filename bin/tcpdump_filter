@@ -1,123 +1,93 @@
 #!/usr/bin/env python3
 """Process a tcpdump -xx log and print one summarized line per UDP packet."""
 
+from datetime import datetime
 import re
 import struct
 import sys
 
-JOINTS = 6
 
-# Packed int32 values decoded little-endian → human-readable name
-HEADER_NAMES = {
-    0x64617461: 'data',
-    0x72656164: 'read',
-    0x77726974: 'writ',
-    0x65737470: 'estp',
-    0x61636b6e: 'ackn',
-    0x6572726f: 'erro',
-}
+PACKET_RE = re.compile(r"""(?mx)
+^(?P<timestamp>\d{2}:\d{2}:\d{2}\.\d+).*proto\sUDP.*\n
+\s+(?P<sender>10\.10\.10\.\d+)\..*\n
+(?P<data>(?:\s+0x00\d0:\s\s[\s\da-f]{40}.*\n)*)
+"""
+)
 
 # Width for each joint value (right-justified), plus one char for '*' or ' '
 NUM_WIDTH = 10
 
+class Packet:
+    def __init__(self, timestamp, sender, data):
+        self.timestamp = timestamp
+        self.sender = sender
+        self.data = data
 
-def format_joints(values, enable_mask=None):
-    parts = []
-    for i, v in enumerate(values):
-        s = f"{v:>{NUM_WIDTH}}"
-        if enable_mask is None:
-            s += " "
+    @property
+    def payload(self):
+        ihl = (self.data[0] & 0x0F) * 4
+        return self.data[ihl + 8:]
+
+    @property
+    def header(self):
+        return bytes(reversed(self.payload[:4])).decode("latin-1", errors="replace")
+
+    @property
+    def direction(self):
+        return ">" if self.sender == "10.10.10.10" else "<"
+
+    @property
+    def positions(self):
+        return struct.unpack_from("<3i", self.payload, 4)
+
+    def format(self, previous_packet, previous_writ, previous_data):
+        if previous_data is None:
+            delta_micros = 0
         else:
-            s += "*" if (enable_mask >> i) & 1 else " "
-        parts.append(s)
-    return " ".join(parts)
+            delta = self.timestamp - previous_data.timestamp
+            delta_micros = delta.seconds * 1_000_000 + delta.microseconds
 
+        payload_text = ''
+        if self.header == 'writ':
+            joint_enable = self.payload[44]
+            freq_cmds = struct.unpack_from("<3i", self.payload, 4)
+            for cmd in freq_cmds:
+                payload_text += f'{cmd:>10}{"*" if joint_enable & 1 else " "} {" ":>10} '
+                joint_enable >>= 1
+        elif self.header == 'data':
+            if previous_data is None or previous_writ is None:
+                for pos in self.positions:
+                    payload_text += f'{pos:>10}  {" ":>10} '
+            else:
+                ts_delta = self.timestamp - previous_data.timestamp
+                ts_delta_micros = ts_delta.seconds * 1_000_000 + ts_delta.microseconds
+                ts_delta_seconds = ts_delta_micros / 1000000.0
+                for (pos, prev) in zip(self.positions, previous_data.positions):
+                    expected = int((pos - prev) / ts_delta_seconds)
+                    payload_text += f'{pos:>10} ({expected:>10})'
 
-def process_packet(ts, src_ip, raw_bytes):
-    if src_ip is None:
-        return None
-
-    data = bytes(raw_bytes)
-    if len(data) < 20:
-        return None
-
-    ihl = (data[0] & 0x0F) * 4
-    if data[9] != 17:  # not UDP
-        return None
-    if len(data) < ihl + 8 + 4:
-        return None
-
-    payload = data[ihl + 8:]  # skip IP header + UDP header
-
-    direction = ">" if src_ip.split(".")[-1] == "10" else "<"
-
-    header_val = struct.unpack_from("<i", payload, 0)[0]
-    header_name = HEADER_NAMES.get(
-        header_val,
-        bytes(reversed(payload[:4])).decode("latin-1", errors="replace"),
-    )
-
-    # rxData_t: writ packets — jointFreqCmd[6] at offset 4, jointEnable at offset 44
-    if header_name == "writ" and len(payload) >= 45:
-        freq_cmds = struct.unpack_from("<6i", payload, 4)
-        joint_enable = payload[44]
-        return f"{ts} {direction} {header_name}  {format_joints(freq_cmds, joint_enable)}"
-
-    # txData_t: data packets — jointFeedback[6] at offset 4
-    if header_name == "data" and len(payload) >= 28:
-        feedbacks = struct.unpack_from("<6i", payload, 4)
-        return f"{ts} {direction} {header_name}  {format_joints(feedbacks)}"
-
-    return f"{ts} {direction} {header_name}"
-
+        return f'{"+"+str(delta_micros):>5} {self.direction}{self.header.upper()} {payload_text}'
 
 def main():
-    src = open(sys.argv[1]) if len(sys.argv) > 1 else sys.stdin
-
-    TIMESTAMP_RE = re.compile(r"^(\d{2}:\d{2}:\d{2}\.\d+) ")
-    FLOW_RE = re.compile(r"^\s+(\d+\.\d+\.\d+\.\d+)\.\d+ > ")
-    HEX_RE = re.compile(r"^\s+0x[0-9a-f]+:\s+([\s0-9a-f]+)", re.I)
-
-    current_ts = None
-    current_src = None
-    current_bytes = []
-
-    def flush():
-        result = process_packet(current_ts, current_src, current_bytes)
-        if result:
-            print(result)
-
-    try:
-        for line in src:
-            m = TIMESTAMP_RE.match(line)
-            if m:
-                if current_ts:
-                    flush()
-                current_ts = m.group(1)
-                current_src = None
-                current_bytes = []
-                continue
-
-            if current_ts and current_src is None:
-                m = FLOW_RE.match(line)
-                if m:
-                    current_src = m.group(1)
-                    continue
-
-            if current_ts:
-                m = HEX_RE.match(line)
-                if m:
-                    hex_only = m.group(1).split("  ", 1)[0]
-                    current_bytes.extend(
-                        int(h, 16)
-                        for h in re.findall(r"[0-9a-f]{2}", hex_only, re.I)
-                    )
-        if current_ts:
-            flush()
-    finally:
-        if len(sys.argv) > 1:
-            src.close()
-
+    with open(sys.argv[1]) as src:
+        text = src.read()
+    previous_p = None
+    previous_writ = None
+    previous_data = None
+    for m in PACKET_RE.finditer(text):
+        timestamp = datetime.strptime(m['timestamp'], '%H:%M:%S.%f')
+        data = bytes.fromhex("".join([
+            w
+            for line in m.group('data').split('\n')
+            for w in re.sub(r'^\s+0x00\d0:\s+', '', line)[:40] if w != ''
+        ]))
+        p = Packet(timestamp, m.group('sender'), data)
+        print(p.format(previous_p, previous_writ, previous_data))
+        previous_p = p
+        if p.header == 'writ':
+            previous_writ = p
+        elif p.header == 'data':
+            previous_data = p
 
 if __name__ == "__main__":
     main()
