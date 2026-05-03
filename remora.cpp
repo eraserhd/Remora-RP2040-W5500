@@ -337,37 +337,6 @@ void loadModules()
     }
 }
 
-
-void core1_entry()
-{
-    printf("\nRemora for RP2040 starting (core1)...\n\r");
-
-    printf("\nStarting the SERVO thread\n");
-    servoThread->startThread();
-
-    for (;;)
-    {
-        printf("\n## Entering IDLE state\n");
-        do
-        {
-            servoThread->run();
-        }
-        while (!comms->getStatus());
-
-        printf("\n## Entering RUNNING state\n");
-        do
-        {
-            servoThread->run();
-        }
-        while (comms->getStatus());
-
-        printf("\n## Entering RESET state\n");
-        // Stop all movement
-        for (int i = 0; i < JOINTS; i++)
-            stepGenerators[i]->frequencyCommand(PRU_BASEFREQ, false, 0);
-    }
-}
-
 int main()
 {
     // Network configuration
@@ -395,25 +364,48 @@ int main()
 
     printf("\n## Entering START state\n");
 
-    while (1)
+    printf("\nStarting the SERVO thread\n");
+    servoThread->startThread();
+
+    bool idle = true;
+    for (;;)
     {
         EthernetTasks();
         sys_check_timeouts();
+        servoThread->run();
+
+        bool commsOk = comms->getStatus();
+        if (idle && commsOk)
+        {
+            printf("\n## Entering RUNNING state\n");
+            idle = false;
+        }
+        else if (!idle && !commsOk)
+        {
+            printf("\n## Resetting motion\n");
+
+            // Stop all movement
+            for (int i = 0; i < JOINTS; i++)
+                stepGenerators[i]->frequencyCommand(PRU_BASEFREQ, false, 0);
+
+            printf("\n## Entering IDLE state\n");
+            idle = true;
+        }
 
         if (newJson)
         {
             printf("\n\nChecking new configuration file\n");
             if (checkJson() > 0)
             {
-            printf("Moving new config file to Flash storage\n");
-            moveJson();
+                printf("Moving new config file to Flash storage\n");
+                moveJson();
 
-            // force a reset to load new JSON configuration
-            printf("Forceing a reboot now....\n");
-            watchdog_reboot(0, SRAM_END, 0);
-            for (;;) {
-                __wfi();
-            }
+                // force a reset to load new JSON configuration
+                printf("Forceing a reboot now....\n");
+                watchdog_reboot(0, SRAM_END, 0);
+                for (;;) {
+                    __wfi();
+                }
             }
         }
     }
