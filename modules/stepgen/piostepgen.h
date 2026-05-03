@@ -14,6 +14,7 @@ private:
     uint offset;
 
     bool lastDir;
+    uint32_t lastCmd;
     int32_t position;
 
     uint32_t steplen;

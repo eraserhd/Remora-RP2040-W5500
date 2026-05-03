@@ -94,18 +94,22 @@ bool PioStepgen::find_sm(void)
 
 void PioStepgen::send_pio_command(uint32_t cmd)
 {
+    if (lastCmd == cmd)
+        return;
     if (pio_sm_is_tx_fifo_full(pio, sm))
     {
         printf("tx is full! (pio = %d, sm = %d, offset = %d, pc = %d)\n", PIO_NUM(pio), sm, offset, pio_sm_get_pc(pio, sm));
         return;
     }
     pio_sm_put(pio, sm, cmd);
+    lastCmd = cmd;
 }
 
 PioStepgen::PioStepgen(std::string step, std::string dir)
     : stepPin(parse_pin(step))
     , dirPin(parse_pin(dir))
     , lastDir(true)
+    , lastCmd(0)
     , position(0)
 {
     //FIXME: configure
@@ -156,7 +160,7 @@ PioStepgen::PioStepgen(std::string step, std::string dir)
     }
 
     stepgens.push_back(this);
-    pio_sm_put_blocking(pio, sm, (uint32_t(lastDir) << 16) | 1);
+    send_pio_command((uint32_t(lastDir) << 16) | 1);
     pio_sm_set_enabled(pio, sm, true);
 
     printf("Stepgen(%d,%d) finished initializing.\n", stepPin, dirPin);
