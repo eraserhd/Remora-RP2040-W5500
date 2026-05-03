@@ -8,12 +8,7 @@
 
 class pruThread; // forward declaration
 
-struct NormalRunContext
-{
-    static void run(pruThread* thread);
-};
-
-template<int TimerNumber, int32_t Freq, typename RunContext>
+template<int TimerNumber, int32_t Freq>
 class ThreadRunner
 {
 private:
@@ -27,7 +22,7 @@ private:
     {
         hw_clear_bits(&timer_hw->intr, 1u << TimerNumber);
         timer_hw->alarm[TimerNumber] += Period;
-        RunContext::run(thread);
+        thread->execute = true;
     }
 
 public:
@@ -46,9 +41,9 @@ public:
     }
 };
 
-template<int TimerNumber, int32_t Freq, typename RunContext>
-pruThread *ThreadRunner<TimerNumber,Freq,RunContext>::thread = NULL;
+template<int TimerNumber, int32_t Freq>
+pruThread *ThreadRunner<TimerNumber,Freq>::thread = NULL;
 
-typedef ThreadRunner<1, PRU_SERVOFREQ, NormalRunContext> ServoThreadRunner;
+typedef ThreadRunner<1, PRU_SERVOFREQ> ServoThreadRunner;
 
 #endif
