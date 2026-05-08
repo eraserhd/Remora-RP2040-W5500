@@ -15,7 +15,6 @@ class Stepgen : public Module
 {
 private:
     int jointNumber;               // LinuxCNC joint number
-    int mask;
 
     int32_t rawCount;              // current position raw count - not currently used - mirrors original stepgen.c
     int32_t DDSaccumulator;        // Direct Digital Synthesis (DDS) accumulator

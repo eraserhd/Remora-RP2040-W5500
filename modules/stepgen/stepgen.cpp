@@ -51,7 +51,6 @@ Stepgen::Stepgen(
     float dirhold,
     float dirdelay
 ) : jointNumber(jointNumber)
-  , mask(1 << jointNumber)
   , rawCount(0)
   , DDSaccumulator(0)
   , steplen(steplen)
@@ -85,8 +84,8 @@ void Stepgen::slowUpdate()
 void Stepgen::makePulses()
 {
     rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
-    bool isEnabled = ((rxData->jointEnable & this->mask) != 0);
-    if (!isEnabled)                                                      // this Step generator is enables so make the pulses
+    bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
+    if (!isEnabled)
         return;
 
     int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];  // Get the latest frequency command via pointer to the data source
