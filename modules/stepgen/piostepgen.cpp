@@ -48,11 +48,13 @@ void pio_rx_irq_handler(void)
 {
     for (auto* stepgen : stepgens)
     {
-        while (!pio_sm_is_rx_fifo_empty(stepgen->pio, stepgen->sm))
-        {
-            auto rx = pio_sm_get(stepgen->pio, stepgen->sm);
-            stepgen->position += (rx ? 1 : -1);
-        }
+        int i;
+        int32_t delta = 0;
+        for (i = 0; i < 15 && !pio_sm_is_rx_fifo_empty(stepgen->pio, stepgen->sm); ++i)
+            delta += (pio_sm_get(stepgen->pio, stepgen->sm) ? 1 : -1);
+        stepgen->position += delta;
+        if (15 == i)
+            printf("%d.%d: cannot drain rx.\n");
     }
 }
 
@@ -98,11 +100,30 @@ void PioStepgen::send_pio_command(uint32_t cmd)
         return;
     if (pio_sm_is_tx_fifo_full(pio, sm))
     {
-        printf("tx is full! (pio = %d, sm = %d, offset = %d, pc = %d)\n", PIO_NUM(pio), sm, offset, pio_sm_get_pc(pio, sm));
+        printf("%d.%d: tx is full! (offset = %d, pc = %d)\n", PIO_NUM(pio), sm, offset, pio_sm_get_pc(pio, sm));
         return;
     }
     pio_sm_put(pio, sm, cmd);
     lastCmd = cmd;
+
+    if (cmd & 1)
+    {
+        cmd >>= 1;
+        uint32_t dirhold = (cmd & ((1<<15)-1))*50;
+        cmd >>= 15;
+        bool nd = cmd & 1;
+        cmd >>= 1;
+        uint32_t dirsetup = cmd*50;
+        printf("%d.%d: tx dirhold = %u, ND = %d, dirsetup = %u\n", PIO_NUM(pio), sm, dirhold, nd, dirsetup);
+    }
+    else
+    {
+        cmd >>= 1;
+        uint32_t steplen = (cmd & ((1<<10)-1))*50;
+        cmd >>= 10;
+        uint32_t stepspace = cmd*50;
+        printf("%d.%d: tx steplen = %u, stepspace = %u\n", PIO_NUM(pio), sm, steplen, stepspace);
+    }
 }
 
 PioStepgen::PioStepgen(std::string step, std::string dir)
@@ -172,6 +193,7 @@ PioStepgen::~PioStepgen()
 
 void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t frequencyCommand)
 {
+    printf("%d.%d: fc %d %d\n", PIO_NUM(pio), sm, enable, frequencyCommand);
     if (!enable || 0 == frequencyCommand)
     {
         // Zero frequency command
@@ -194,5 +216,6 @@ void PioStepgen::frequencyCommand(int32_t threadFrequency, bool enable, int32_t 
 
 int32_t PioStepgen::jointFeedback()
 {
+    printf("%d.%d: p %d\n", PIO_NUM(pio), sm, position);
     return position;
 }
