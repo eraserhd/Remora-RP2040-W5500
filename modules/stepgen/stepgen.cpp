@@ -67,7 +67,6 @@ Stepgen::Stepgen(
     this->rawCount = 0;
     this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;
     this->mask = 1 << this->jointNumber;
-    this->isEnabled = false;
     this->isForward = false;
 }
 
@@ -95,11 +94,10 @@ void Stepgen::makePulses()
     this->rxData = getCurrentRxBuffer(&rxPingPongBuffer);
     this->txData = getCurrentTxBuffer(&txPingPongBuffer);
 
-    this->isEnabled = ((rxData->jointEnable & this->mask) != 0);
-
-    if (this->isEnabled == true)                                                // this Step generator is enables so make the pulses
+    bool isEnabled = ((rxData->jointEnable & this->mask) != 0);
+    if (isEnabled)                                                              // this Step generator is enables so make the pulses
     {
-        this->frequencyCommand = rxData->jointFreqCmd[this->jointNumber];             // Get the latest frequency command via pointer to the data source
+        this->frequencyCommand = rxData->jointFreqCmd[this->jointNumber];       // Get the latest frequency command via pointer to the data source
         this->DDSaddValue = this->frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
         stepNow = this->DDSaccumulator;                                         // Save the current DDS accumulator value
         this->DDSaccumulator += this->DDSaddValue;                              // Update the DDS accumulator with the new add value
