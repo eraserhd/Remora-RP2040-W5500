@@ -17,8 +17,6 @@ private:
     int jointNumber;               // LinuxCNC joint number
     int mask;
 
-    std::string step, direction;   // physical pins connections
-
     int32_t rawCount;              // current position raw count - not currently used - mirrors original stepgen.c
     int32_t DDSaccumulator;        // Direct Digital Synthesis (DDS) accumulator
     float   frequencyScale;        // frequency scale

@@ -52,8 +52,6 @@ Stepgen::Stepgen(
     float dirdelay,
     int stepBit
 ) : jointNumber(jointNumber)
-  , step(step)
-  , direction(direction)
   , steplen(steplen)
   , stepspace(stepspace)
   , dirsetup(dirsetup)
@@ -61,8 +59,8 @@ Stepgen::Stepgen(
   , dirdelay(dirdelay)
   , stepBit(stepBit)
 {
-    this->stepPin = new Pin(this->step, OUTPUT);
-    this->directionPin = new Pin(this->direction, OUTPUT);
+    this->stepPin = new Pin(step, OUTPUT);
+    this->directionPin = new Pin(direction, OUTPUT);
     this->DDSaccumulator = 0;
     this->rawCount = 0;
     this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;
