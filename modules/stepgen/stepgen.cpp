@@ -95,39 +95,39 @@ void Stepgen::makePulses()
     this->txData = getCurrentTxBuffer(&txPingPongBuffer);
 
     bool isEnabled = ((rxData->jointEnable & this->mask) != 0);
-    if (isEnabled)                                                              // this Step generator is enables so make the pulses
-    {
-        this->frequencyCommand = rxData->jointFreqCmd[this->jointNumber];       // Get the latest frequency command via pointer to the data source
-        this->DDSaddValue = this->frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
-        stepNow = this->DDSaccumulator;                                         // Save the current DDS accumulator value
-        this->DDSaccumulator += this->DDSaddValue;                              // Update the DDS accumulator with the new add value
-        stepNow ^= this->DDSaccumulator;                                        // Test for changes in the low half of the DDS accumulator
-        stepNow &= (1L << this->stepBit);                                       // Check for the step bit
-        //this->rawCount = this->DDSaccumulator >> this->stepBit;                   // Update the position raw count
+    if (!isEnabled)                                                             // this Step generator is enables so make the pulses
+        return;
 
-        if (this->DDSaddValue > 0)                                              // The sign of the DDS add value indicates the desired direction
+    this->frequencyCommand = rxData->jointFreqCmd[this->jointNumber];       // Get the latest frequency command via pointer to the data source
+    this->DDSaddValue = this->frequencyCommand * this->frequencyScale;      // Scale the frequency command to get the DDS add value
+    stepNow = this->DDSaccumulator;                                         // Save the current DDS accumulator value
+    this->DDSaccumulator += this->DDSaddValue;                              // Update the DDS accumulator with the new add value
+    stepNow ^= this->DDSaccumulator;                                        // Test for changes in the low half of the DDS accumulator
+    stepNow &= (1L << this->stepBit);                                       // Check for the step bit
+    //this->rawCount = this->DDSaccumulator >> this->stepBit;                   // Update the position raw count
+
+    if (this->DDSaddValue > 0)                                              // The sign of the DDS add value indicates the desired direction
+    {
+        this->isForward = true;
+    }
+    else
+    {
+        this->isForward = false;
+    }
+
+    if (stepNow)
+    {
+        this->directionPin->set(this->isForward);                           // Set direction pin
+        this->stepPin->set(true);                                           // Raise step pin
+        if (this->isForward)
         {
-            this->isForward = true;
+            ++this->rawCount;
         }
         else
         {
-            this->isForward = false;
+            --this->rawCount;
         }
-
-        if (stepNow)
-        {
-            this->directionPin->set(this->isForward);                           // Set direction pin
-            this->stepPin->set(true);                                           // Raise step pin
-            if (this->isForward)
-            {
-                ++this->rawCount;
-            }
-            else
-            {
-                --this->rawCount;
-            }
-            txData->jointFeedback[this->jointNumber] = this->rawCount;  
-        }
+        txData->jointFeedback[this->jointNumber] = this->rawCount;
     }
 }
 
