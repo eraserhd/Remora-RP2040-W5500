@@ -29,7 +29,10 @@ struct Scenario
     {
         // Scenarios are not parallelizable
         pinState.clear();
+        rx.rxBuffers[0].jointEnable = 1;
     }
+
+    Scenario& jointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
 };
 
 
@@ -52,8 +55,7 @@ static const char* DIR_PIN  = "GP03";
 
 void test_disabled_joint_does_not_step()
 {
-    Scenario sc;
-    sc.rx.rxBuffers[0].jointEnable = 0;
+    Scenario sc = Scenario().jointEnable(0);
     sc.rx.rxBuffers[0].jointFreqCmd[0] = THREAD_FREQ;
     TestStepgen sg(&sc.rx, &sc.tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
     sg.update();
@@ -64,7 +66,6 @@ void test_disabled_joint_does_not_step()
 void test_zero_frequency_does_not_step()
 {
     Scenario sc;
-    sc.rx.rxBuffers[0].jointEnable = 1;
     sc.rx.rxBuffers[0].jointFreqCmd[0] = 0;
     TestStepgen sg(&sc.rx, &sc.tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
     for (int i = 0; i < 1000; ++i)
@@ -76,7 +77,6 @@ void test_zero_frequency_does_not_step()
 void test_full_rate_steps_every_update()
 {
     Scenario sc;
-    sc.rx.rxBuffers[0].jointEnable = 1;
     sc.rx.rxBuffers[0].jointFreqCmd[0] = THREAD_FREQ;
     TestStepgen sg(&sc.rx, &sc.tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
     sg.update();
@@ -90,11 +90,9 @@ void test_full_rate_steps_every_update()
 
 void test_half_rate_steps_every_two_updates()
 {
-    pinState.clear();
-    RxPingPongBuffer rx = {}; TxPingPongBuffer tx = {};
-    rx.rxBuffers[0].jointEnable = 1;
-    rx.rxBuffers[0].jointFreqCmd[0] = THREAD_FREQ / 2;
-    TestStepgen sg(&rx, &tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
+    Scenario sc;
+    sc.rx.rxBuffers[0].jointFreqCmd[0] = THREAD_FREQ / 2;
+    TestStepgen sg(&sc.rx, &sc.tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
     sg.update();
     assert(!pinState[STEP_PIN]);
     sg.update();
@@ -105,7 +103,6 @@ void test_half_rate_steps_every_two_updates()
 void test_forward_direction_and_count()
 {
     Scenario sc;
-    sc.rx.rxBuffers[0].jointEnable = 1;
     sc.rx.rxBuffers[0].jointFreqCmd[0] = THREAD_FREQ;
     TestStepgen sg(&sc.rx, &sc.tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
     sg.update();
@@ -117,7 +114,6 @@ void test_forward_direction_and_count()
 void test_reverse_direction_and_count()
 {
     Scenario sc;
-    sc.rx.rxBuffers[0].jointEnable = 1;
     sc.rx.rxBuffers[0].jointFreqCmd[0] = -THREAD_FREQ;
     TestStepgen sg(&sc.rx, &sc.tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
     sg.update();
