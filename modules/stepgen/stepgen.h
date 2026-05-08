@@ -30,9 +30,6 @@ private:
     float dirhold;
     float dirdelay;
 
-    rxData_t* rxData;              // pointer to ping-pong buffer
-    txData_t* txData;              // pointer to ping-pong buffer
-
 public:
     Stepgen(
         int32_t threadFreq,

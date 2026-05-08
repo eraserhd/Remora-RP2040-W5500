@@ -88,9 +88,7 @@ void Stepgen::slowUpdate()
 
 void Stepgen::makePulses()
 {
-    this->rxData = getCurrentRxBuffer(&rxPingPongBuffer);
-    this->txData = getCurrentTxBuffer(&txPingPongBuffer);
-
+    rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
     bool isEnabled = ((rxData->jointEnable & this->mask) != 0);
     if (!isEnabled)                                                      // this Step generator is enables so make the pulses
         return;
@@ -116,6 +114,7 @@ void Stepgen::makePulses()
     {
         --this->rawCount;
     }
+    txData_t *txData = getCurrentTxBuffer(&txPingPongBuffer);
     txData->jointFeedback[this->jointNumber] = this->rawCount;
 }
 
