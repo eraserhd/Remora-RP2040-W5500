@@ -107,20 +107,20 @@ void Stepgen::makePulses()
 
     bool isForward = this->DDSaddValue > 0;
 
-    if (stepNow)
+    if (!stepNow)
+        return;
+
+    this->directionPin->set(isForward);                                 // Set direction pin
+    this->stepPin->set(true);                                           // Raise step pin
+    if (isForward)
     {
-        this->directionPin->set(isForward);                                 // Set direction pin
-        this->stepPin->set(true);                                           // Raise step pin
-        if (isForward)
-        {
-            ++this->rawCount;
-        }
-        else
-        {
-            --this->rawCount;
-        }
-        txData->jointFeedback[this->jointNumber] = this->rawCount;
+        ++this->rawCount;
     }
+    else
+    {
+        --this->rawCount;
+    }
+    txData->jointFeedback[this->jointNumber] = this->rawCount;
 }
 
 
