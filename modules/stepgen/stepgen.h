@@ -26,6 +26,9 @@ private:
     float dirhold;
     float dirdelay;
 
+    Pin *stepPin;
+    Pin *directionPin;
+
 public:
     Stepgen(
         int32_t threadFreq,
@@ -38,8 +41,6 @@ public:
         float dirhold,
         float dirdelay
     );
-
-    Pin *stepPin, *directionPin;   // class object members - Pin objects
 
     virtual void update(void);     // Module default interface
     virtual void updatePost(void);
