@@ -138,9 +138,3 @@ void Stepgen::stopPulses()
 {
     this->stepPin->set(false);  // Reset step pin
 }
-
-
-void Stepgen::setEnabled(bool state)
-{
-    this->isEnabled = state;
-}

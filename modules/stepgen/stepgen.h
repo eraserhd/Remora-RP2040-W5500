@@ -59,7 +59,6 @@ public:
     virtual void slowUpdate(void);
     void makePulses();
     void stopPulses();
-    void setEnabled(bool);
 };
 
 
