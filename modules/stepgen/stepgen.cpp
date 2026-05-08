@@ -29,7 +29,7 @@ void createStepgen()
     // create the step generator, register it in the thread
     Module* stepgen = new Stepgen(
         base_freq, joint, step, dir, steplen, stepspace,
-        dirsetup, dirhold, dirdelay, STEPBIT
+        dirsetup, dirhold, dirdelay
     );
     baseThread->registerModule(stepgen);
     baseThread->registerModulePost(stepgen);
@@ -49,8 +49,7 @@ Stepgen::Stepgen(
     float stepspace,
     float dirsetup,
     float dirhold,
-    float dirdelay,
-    int stepBit
+    float dirdelay
 ) : jointNumber(jointNumber)
   , mask(1 << jointNumber)
   , rawCount(0)
@@ -60,11 +59,10 @@ Stepgen::Stepgen(
   , dirsetup(dirsetup)
   , dirhold(dirhold)
   , dirdelay(dirdelay)
-  , stepBit(stepBit)
   , stepPin(new Pin(step, OUTPUT))
   , directionPin(new Pin(direction, OUTPUT))
 {
-    this->frequencyScale = (float)(1 << this->stepBit) / (float)threadFreq;
+    this->frequencyScale = (float)(1 << STEPBIT) / (float)threadFreq;
 }
 
 
@@ -96,7 +94,7 @@ void Stepgen::makePulses()
     int32_t stepNow = this->DDSaccumulator;                              // Save the current DDS accumulator value
     this->DDSaccumulator += DDSaddValue;                                 // Update the DDS accumulator with the new add value
     stepNow ^= this->DDSaccumulator;                                     // Test for changes in the low half of the DDS accumulator
-    stepNow &= (1L << this->stepBit);                                    // Check for the step bit
+    stepNow &= (1L << STEPBIT);                                          // Check for the step bit
 
     if (!stepNow)
         return;
