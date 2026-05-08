@@ -105,11 +105,10 @@ void Stepgen::makePulses()
     stepNow &= (1L << this->stepBit);                                       // Check for the step bit
     //this->rawCount = this->DDSaccumulator >> this->stepBit;                   // Update the position raw count
 
-    bool isForward = this->DDSaddValue > 0;
-
     if (!stepNow)
         return;
 
+    bool isForward = this->DDSaddValue > 0;
     this->directionPin->set(isForward);                                 // Set direction pin
     this->stepPin->set(true);                                           // Raise step pin
     if (isForward)
