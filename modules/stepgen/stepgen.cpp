@@ -1,5 +1,4 @@
 #include "stepgen.h"
-#include "../remora.h"
 
 /***********************************************************************
                 MODULE CONFIGURATION AND CREATION FROM JSON     
@@ -27,6 +26,7 @@ void createStepgen()
 
     // create the step generator, register it in the thread
     Module* stepgen = new Stepgen(
+        &rxPingPongBuffer, &txPingPongBuffer,
         base_freq, joint, step, dir, steplen, stepspace,
         dirsetup, dirhold, dirdelay
     );
