@@ -11,7 +11,8 @@
 
 void createStepgen(void);
 
-class Stepgen : public Module
+template<class Pin>
+class BasicStepgen : public Module
 {
 private:
     int jointNumber;               // LinuxCNC joint number
@@ -30,7 +31,7 @@ private:
     Pin *directionPin;
 
 public:
-    Stepgen(
+    BasicStepgen(
         int32_t threadFreq,
         int jointNumber,
         std::string step,
@@ -40,7 +41,19 @@ public:
         float dirsetup,
         float dirhold,
         float dirdelay
-    );
+    ) : jointNumber(jointNumber)
+      , rawCount(0)
+      , DDSaccumulator(0)
+      , steplen(steplen)
+      , stepspace(stepspace)
+      , dirsetup(dirsetup)
+      , dirhold(dirhold)
+      , dirdelay(dirdelay)
+      , stepPin(new Pin(step, OUTPUT))
+      , directionPin(new Pin(direction, OUTPUT))
+    {
+        this->frequencyScale = (float)(1 << STEPBIT) / (float)threadFreq;
+    }
 
     virtual void update(void);     // Module default interface
     virtual void updatePost(void);
@@ -49,5 +62,6 @@ public:
     void stopPulses();
 };
 
+typedef BasicStepgen<Pin> Stepgen;
 
 #endif

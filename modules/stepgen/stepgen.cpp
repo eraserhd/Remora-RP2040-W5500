@@ -40,48 +40,27 @@ void createStepgen()
                 METHOD DEFINITIONS
 ************************************************************************/
 
-Stepgen::Stepgen(
-    int32_t threadFreq,
-    int jointNumber,
-    std::string step,
-    std::string direction,
-    float steplen,
-    float stepspace,
-    float dirsetup,
-    float dirhold,
-    float dirdelay
-) : jointNumber(jointNumber)
-  , rawCount(0)
-  , DDSaccumulator(0)
-  , steplen(steplen)
-  , stepspace(stepspace)
-  , dirsetup(dirsetup)
-  , dirhold(dirhold)
-  , dirdelay(dirdelay)
-  , stepPin(new Pin(step, OUTPUT))
-  , directionPin(new Pin(direction, OUTPUT))
-{
-    this->frequencyScale = (float)(1 << STEPBIT) / (float)threadFreq;
-}
-
-
-void Stepgen::update()
+template<class Pin>
+void BasicStepgen<Pin>::update()
 {
     // Use the standard Module interface to run makePulses()
     this->makePulses();
 }
 
-void Stepgen::updatePost()
+template<class Pin>
+void BasicStepgen<Pin>::updatePost()
 {
     this->stopPulses();
 }
 
-void Stepgen::slowUpdate()
+template<class Pin>
+void BasicStepgen<Pin>::slowUpdate()
 {
     return;
 }
 
-void Stepgen::makePulses()
+template<class Pin>
+void BasicStepgen<Pin>::makePulses()
 {
     rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
     bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
@@ -113,8 +92,8 @@ void Stepgen::makePulses()
     txData->jointFeedback[this->jointNumber] = this->rawCount;
 }
 
-
-void Stepgen::stopPulses()
+template<class Pin>
+void BasicStepgen<Pin>::stopPulses()
 {
     this->stepPin->set(false);  // Reset step pin
 }
