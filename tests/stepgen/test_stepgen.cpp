@@ -256,6 +256,14 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
         .afterRunning1Second()
         .hasStepPulses(10000)
         ;
+    Scenario()
+        .withThreadFrequency(40000)
+        .withSteplen(50000)
+        .withStepspace(50000)
+        .withJointFreqCmd(-THREAD_FREQ)
+        .afterRunning1Second()
+        .hasStepPulses(10000)
+        ;
 }
 
 int main()
