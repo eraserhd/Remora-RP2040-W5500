@@ -64,14 +64,14 @@ public:
         maximumFrequency = threadFreq / (steplenInCycles + stepspaceInCycles);
     }
 
-    virtual void update()
+    virtual void update() override
     {
         this->makePulses();
     }
 
     virtual void updatePost() override {}
 
-    virtual void slowUpdate() {}
+    virtual void slowUpdate() override {}
 
     void setFrequency(int32_t frequency, bool enabled)
     {
