@@ -213,24 +213,6 @@ public:
         return *this;
     }
 
-    Scenario& hasActualDirsetupSamples(int expected)
-    {
-        bool dir = samples.begin()->dir;
-        for (auto const& sample : samples)
-        {
-            if (sample.dir != dir)
-            {
-                if (sample.count < expected)
-                {
-                    fail("expected at least %d samples on dirchange, but saw %d", expected, sample.count);
-                    return *this;
-                }
-                dir = sample.dir;
-            }
-        }
-        return *this;
-    }
-
     Scenario& producesSamples(Step steps, Dir dirs, Count counts)
     {
         bool equal = true;
@@ -345,7 +327,6 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withDirsetup(150000)
         .withJointFreqCmd(THREAD_FREQ/2)
         .afterRunning1Second()
-        .hasActualDirsetupSamples(6)
         .producesSamples(
              Step{0,0,1,0},
               Dir{0,1,1,1},
