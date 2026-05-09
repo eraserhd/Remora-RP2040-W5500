@@ -17,7 +17,7 @@ private:
     int32_t rawCount;
     int32_t DDSaddValue;
     int32_t DDSaccumulator;
-    float frequencyScale;
+    int32_t threadFreq;
     float steplen;
     float stepspace;
     float dirsetup;
@@ -45,6 +45,7 @@ public:
       , rawCount(0)
       , DDSaddValue(0)
       , DDSaccumulator(0)
+      , threadFreq(threadFreq)
       , steplen(steplen)
       , stepspace(stepspace)
       , dirsetup(dirsetup)
@@ -55,7 +56,6 @@ public:
       , rxBuffer(rxBuffer)
       , txBuffer(txBuffer)
     {
-        this->frequencyScale = (float)(1 << StepBit) / (float)threadFreq;
     }
 
     virtual void update()
@@ -77,7 +77,7 @@ public:
             DDSaddValue = 0;
             return;
         }
-        DDSaddValue = frequency * frequencyScale;
+        DDSaddValue = frequency * ((float)(1 << StepBit) / (float)threadFreq);
     }
 
     void makePulses()
