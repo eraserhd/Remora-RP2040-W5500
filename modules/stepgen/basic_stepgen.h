@@ -15,6 +15,7 @@ private:
 
     int jointNumber;
     int32_t rawCount;
+    int32_t DDSaddValue;
     int32_t DDSaccumulator;
     float frequencyScale;
     float steplen;
@@ -42,6 +43,7 @@ public:
         float dirdelay
     ) : jointNumber(jointNumber)
       , rawCount(0)
+      , DDSaddValue(0)
       , DDSaccumulator(0)
       , steplen(steplen)
       , stepspace(stepspace)
@@ -68,24 +70,32 @@ public:
 
     virtual void slowUpdate() {}
 
+    void setFrequency(int32_t frequency, bool enabled)
+    {
+        if (!enabled)
+        {
+            DDSaddValue = 0;
+            return;
+        }
+        DDSaddValue = frequency * frequencyScale;
+    }
+
     void makePulses()
     {
         rxData_t* rxData = getCurrentRxBuffer(this->rxBuffer);
         bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
-        if (!isEnabled)
-            return;
-
         int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];
-        int32_t DDSaddValue = frequencyCommand * this->frequencyScale;
-        int32_t stepNow = this->DDSaccumulator;
-        this->DDSaccumulator += DDSaddValue;
-        stepNow ^= this->DDSaccumulator;
-        stepNow &= (1L << StepBit);
+        setFrequency(frequencyCommand, isEnabled);
 
+        int32_t toAdd = DDSaddValue;
+        int32_t stepNow = DDSaccumulator;
+        DDSaccumulator += toAdd;
+        stepNow ^= DDSaccumulator;
+        stepNow &= (1L << StepBit);
         if (!stepNow)
             return;
 
-        bool isForward = DDSaddValue > 0;
+        bool isForward = toAdd > 0;
         this->directionPin->set(isForward);
         this->stepPin->set(true);
         if (isForward)
