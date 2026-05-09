@@ -8,6 +8,20 @@
 #include "../../remora.h"
 #include "../module.h"
 
+struct CycleCounter
+{
+    int32_t remaining;
+    int32_t cycles;
+
+public:
+    inline CycleCounter(int32_t threadFreq, int32_t ns)
+        : remaining(0)
+    {
+        float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
+        cycles = ns ? ceil(ns / nsPerCycle) : 1;
+    }
+};
+
 template<class PinType>
 class BasicStepgen : public Module
 {
@@ -19,8 +33,7 @@ private:
     int32_t DDSaddValue;
     int32_t DDSaccumulator;
     int32_t threadFreq;
-    int32_t steplenInCycles;
-    int32_t steplenCyclesRemaining;
+    CycleCounter steplen;
     int32_t maximumFrequency;
     int32_t dirsetupInCycles;
     int32_t dirsetupCyclesRemaining;
@@ -40,17 +53,17 @@ public:
         int jointNumber,
         std::string step,
         std::string direction,
-        int32_t steplen,
-        int32_t stepspace,
-        int32_t dirsetup,
-        float dirhold,
+        int32_t steplenNs,
+        int32_t stepspaceNs,
+        int32_t dirsetupNs,
+        int32_t dirholdNs,
         float dirdelay
     ) : jointNumber(jointNumber)
       , rawCount(0)
       , DDSaddValue(0)
       , DDSaccumulator(0)
       , threadFreq(threadFreq)
-      , steplenCyclesRemaining(0)
+      , steplen(threadFreq, steplenNs)
       , dirsetupCyclesRemaining(0)
       , dirholdCyclesRemaining(0)
       , dirdelay(dirdelay)
@@ -60,12 +73,11 @@ public:
       , txBuffer(txBuffer)
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
-        steplenInCycles = steplen ? ceil(steplen / nsPerCycle) : 1;
-        int32_t stepspaceInCycles = stepspace ? ceil(stepspace / nsPerCycle) : 1;
+        int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
 
-        maximumFrequency = threadFreq / (steplenInCycles + stepspaceInCycles);
-        dirsetupInCycles = dirsetup ? ceil(dirsetup / nsPerCycle) : 1;
-        dirholdInCycles = dirhold ? ceil(dirhold / nsPerCycle) : 1;
+        maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
+        dirsetupInCycles = dirsetupNs ? ceil(dirsetupNs / nsPerCycle) : 1;
+        dirholdInCycles = dirholdNs ? ceil(dirholdNs / nsPerCycle) : 1;
     }
 
     virtual void update() override { this->makePulses(); }
@@ -90,9 +102,9 @@ public:
     {
         if (dirholdCyclesRemaining)
             --dirholdCyclesRemaining;
-        if (steplenCyclesRemaining)
+        if (steplen.remaining)
         {
-            if (0 == --steplenCyclesRemaining)
+            if (0 == --steplen.remaining)
             {
                 this->stepPin->set(false);
                 dirholdCyclesRemaining = dirholdInCycles;
@@ -137,7 +149,7 @@ public:
 
         DDSaccumulator = next;
         this->stepPin->set(true);
-        steplenCyclesRemaining = steplenInCycles;
+        steplen.remaining = steplen.cycles;
         if (isForward)
             ++this->rawCount;
         else
