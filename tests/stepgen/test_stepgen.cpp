@@ -332,6 +332,19 @@ TEST(test_waits_dirsetup_before_pulsing)
               Dir{0,1,1,1},
             Count{1,6,2,2}
         );
+    Scenario()
+        .withDirPin(true)
+        .withThreadFrequency(40000)
+        .withSteplen(50000)
+        .withStepspace(50000)
+        .withDirsetup(150000)
+        .withJointFreqCmd(-THREAD_FREQ/2)
+        .afterRunning1Second()
+        .producesSamples(
+             Step{0,0,1,0},
+              Dir{1,0,0,0},
+            Count{1,6,2,2}
+        );
 }
 
 int main()
