@@ -401,9 +401,9 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withJointFreqCmd(THREAD_FREQ/2)
         .afterRunning1Second()
         .producesSamples(
-             Step{0, 1, 0, 0, 1},
-              Dir{0, 0, 0, 1, 1},
-            Count{1, 2, 6, 3, 2}
+             Step{0, 1, 0, 0, 1, 0},
+              Dir{0, 0, 0, 1, 1, 1},
+            Count{1, 2, 6, 3, 2, 2}
         );
 }
 

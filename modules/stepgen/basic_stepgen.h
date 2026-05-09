@@ -111,7 +111,8 @@ public:
             return;
 
         bool isForward = toAdd > 0;
-        if (this->directionPin->get() != isForward && 0 == dirholdCyclesRemaining)
+        bool needToSwitchDirections = this->directionPin->get() != isForward;
+        if (needToSwitchDirections && 0 == dirholdCyclesRemaining)
         {
             this->directionPin->set(isForward);
             dirsetupCyclesRemaining = dirsetupInCycles;
@@ -126,10 +127,12 @@ public:
         }
 
         // Hold off on stepping if we're still in dirsetup, but don't update
-        // the accumulator so we step immediately after dirstep
+        // the accumulator so we step immediately after dirstep.
         if (dirsetupCyclesRemaining > 0)
             return;
-        if (dirholdCyclesRemaining > 0)
+
+        // If we still need to switch directions, we're in dirhold so hold off.
+        if (needToSwitchDirections)
             return;
 
         DDSaccumulator = next;
