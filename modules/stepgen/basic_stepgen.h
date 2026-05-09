@@ -59,10 +59,7 @@ public:
       , txBuffer(txBuffer)
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
-        if (0 == steplen)
-           steplenInCycles = 1; // Default steplen is 1 cycle
-        else
-           steplenInCycles = ceil(steplen / nsPerCycle);
+        steplenInCycles = steplen ? ceil(steplen / nsPerCycle) : 1;
     }
 
     virtual void update()
