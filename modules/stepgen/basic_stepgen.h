@@ -24,7 +24,8 @@ private:
     int32_t maximumFrequency;
     int32_t dirsetupInCycles;
     int32_t dirsetupCyclesRemaining;
-    float dirhold;
+    int32_t dirholdInCycles;
+    int32_t dirholdCyclesRemaining;
     float dirdelay;
     PinType* stepPin;
     PinType* directionPin;
@@ -51,7 +52,7 @@ public:
       , threadFreq(threadFreq)
       , steplenCyclesRemaining(0)
       , dirsetupCyclesRemaining(0)
-      , dirhold(dirhold)
+      , dirholdCyclesRemaining(0)
       , dirdelay(dirdelay)
       , stepPin(new PinType(step, OUTPUT))
       , directionPin(new PinType(direction, OUTPUT))
@@ -64,6 +65,7 @@ public:
 
         maximumFrequency = threadFreq / (steplenInCycles + stepspaceInCycles);
         dirsetupInCycles = dirsetup ? ceil(dirsetup / nsPerCycle) : 1;
+        dirholdInCycles = dirhold ? ceil(dirhold / nsPerCycle) : 1;
     }
 
     virtual void update() override { this->makePulses(); }
@@ -86,9 +88,16 @@ public:
 
     void makePulses()
     {
+        if (dirholdCyclesRemaining)
+            --dirholdCyclesRemaining;
         if (steplenCyclesRemaining)
+        {
             if (0 == --steplenCyclesRemaining)
+            {
                 this->stepPin->set(false);
+                dirholdCyclesRemaining = dirholdInCycles;
+            }
+        }
         if (dirsetupCyclesRemaining)
             --dirsetupCyclesRemaining;
 
@@ -102,7 +111,7 @@ public:
             return;
 
         bool isForward = toAdd > 0;
-        if (this->directionPin->get() != isForward)
+        if (this->directionPin->get() != isForward && 0 == dirholdCyclesRemaining)
         {
             this->directionPin->set(isForward);
             dirsetupCyclesRemaining = dirsetupInCycles;
@@ -119,6 +128,8 @@ public:
         // Hold off on stepping if we're still in dirsetup, but don't update
         // the accumulator so we step immediately after dirstep
         if (dirsetupCyclesRemaining > 0)
+            return;
+        if (dirholdCyclesRemaining > 0)
             return;
 
         DDSaccumulator = next;

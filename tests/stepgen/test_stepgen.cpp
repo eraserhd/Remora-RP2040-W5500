@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 #include "../../remora.h"
@@ -76,6 +77,8 @@ private:
     int32_t steplen;
     int32_t stepspace;
     int32_t dirsetup;
+    int32_t dirhold;
+    std::optional<TestStepgen> stepgen;
 
     std::pair<int, int> countPulses()
     {
@@ -93,6 +96,23 @@ private:
             last = sample.step;
         }
         return result;
+    }
+
+    void start()
+    {
+        if (!stepgen.has_value())
+        {
+            stepgen.emplace(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, 0);
+            samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
+        }
+    }
+
+    void sample()
+    {
+        if (samples.back().step == pinState[STEP_PIN] && samples.back().dir == pinState[DIR_PIN])
+            ++samples.back().count;
+        else
+            samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
     }
 
     void fail(const char *msg, ...)
@@ -115,6 +135,7 @@ public:
       , steplen(0)
       , stepspace(0)
       , dirsetup(0)
+      , dirhold(0)
     {
         pinState.clear();
         rx.rxBuffers[0].jointEnable = 1;
@@ -138,23 +159,42 @@ public:
     Scenario& withSteplen(int32_t value) { steplen = value; return *this; }
     Scenario& withStepspace(int32_t value) { stepspace = value; return *this; }
     Scenario& withDirsetup(int32_t value) { dirsetup = value; return *this; }
+    Scenario& withDirhold(int32_t value) { dirhold = value; return *this; }
     Scenario& withJointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
     Scenario& withJointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
     Scenario& withDirPin(bool b) { pinState[DIR_PIN] = b; return *this; }
 
     Scenario& afterRunning1Second()
     {
-        // Scenario runs are not parallelizable
-        TestStepgen sg(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, 0, 0);
-        samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
-        for (int i = 0; i < THREAD_FREQ; i++)
+        start();
+        for (int i = 0; i < threadFreq; i++)
         {
-            sg.update();
-            if (samples.back().step == pinState[STEP_PIN] && samples.back().dir == pinState[DIR_PIN])
-                ++samples.back().count;
-            else
-                samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
+            stepgen->update();
+            sample();
         }
+        return *this;
+    }
+
+    Scenario& afterPulses(int n)
+    {
+        start();
+        int seen = 0;
+        for (int i = 0; i < threadFreq; ++i)
+        {
+            stepgen->update();
+            sample();
+
+            if (samples.size() < 2) continue;
+            const auto& a = samples[samples.size()-2];
+            const auto& b = samples[samples.size()-1];
+            // First sample of falling edge.
+            if (a.step && !b.step && b.count == 1)
+            {
+                if (++seen == n)
+                    return *this;
+            }
+        }
+        fail("did not receive %d pulses (saw %d)", n, seen);
         return *this;
     }
 
@@ -347,6 +387,26 @@ TEST(test_waits_dirsetup_before_pulsing)
         );
 }
 
+TEST(test_waits_dirhold_before_changing_direction)
+{
+    Scenario()
+        .withDirPin(false)
+        .withThreadFrequency(40000)
+        .withSteplen(50000)
+        .withStepspace(50000)
+        .withDirsetup(75000)
+        .withDirhold(150000)
+        .withJointFreqCmd(-THREAD_FREQ/2)
+        .afterPulses(1)
+        .withJointFreqCmd(THREAD_FREQ/2)
+        .afterRunning1Second()
+        .producesSamples(
+             Step{0, 1, 0, 0, 1},
+              Dir{0, 0, 0, 1, 1},
+            Count{1, 2, 6, 3, 2}
+        );
+}
+
 int main()
 {
     test_disabled_joint_does_not_step();
@@ -357,6 +417,7 @@ int main()
     test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks();
     test_clamps_maximum_frequency_to_honor_steplen_and_stepspace();
     test_waits_dirsetup_before_pulsing();
+    test_waits_dirhold_before_changing_direction();
     if (0 == failures)
         printf("\nAll tests passed.\n");
     exit(failures ? EXIT_FAILURE : EXIT_SUCCESS);
