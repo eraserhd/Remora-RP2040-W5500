@@ -35,10 +35,8 @@ private:
     int32_t threadFreq;
     CycleCounter steplen;
     int32_t maximumFrequency;
-    int32_t dirsetupInCycles;
-    int32_t dirsetupCyclesRemaining;
-    int32_t dirholdInCycles;
-    int32_t dirholdCyclesRemaining;
+    CycleCounter dirsetup;
+    CycleCounter dirhold;
     float dirdelay;
     PinType* stepPin;
     PinType* directionPin;
@@ -64,8 +62,8 @@ public:
       , DDSaccumulator(0)
       , threadFreq(threadFreq)
       , steplen(threadFreq, steplenNs)
-      , dirsetupCyclesRemaining(0)
-      , dirholdCyclesRemaining(0)
+      , dirsetup(threadFreq, dirsetupNs)
+      , dirhold(threadFreq, dirholdNs)
       , dirdelay(dirdelay)
       , stepPin(new PinType(step, OUTPUT))
       , directionPin(new PinType(direction, OUTPUT))
@@ -74,10 +72,7 @@ public:
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
         int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
-
         maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
-        dirsetupInCycles = dirsetupNs ? ceil(dirsetupNs / nsPerCycle) : 1;
-        dirholdInCycles = dirholdNs ? ceil(dirholdNs / nsPerCycle) : 1;
     }
 
     virtual void update() override { this->makePulses(); }
@@ -100,18 +95,18 @@ public:
 
     void makePulses()
     {
-        if (dirholdCyclesRemaining)
-            --dirholdCyclesRemaining;
+        if (dirhold.remaining)
+            --dirhold.remaining;
         if (steplen.remaining)
         {
             if (0 == --steplen.remaining)
             {
                 this->stepPin->set(false);
-                dirholdCyclesRemaining = dirholdInCycles;
+                dirhold.remaining = dirhold.cycles;
             }
         }
-        if (dirsetupCyclesRemaining)
-            --dirsetupCyclesRemaining;
+        if (dirsetup.remaining)
+            --dirsetup.remaining;
 
         rxData_t* rxData = getCurrentRxBuffer(this->rxBuffer);
         bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
@@ -124,10 +119,10 @@ public:
 
         bool isForward = toAdd > 0;
         bool needToSwitchDirections = this->directionPin->get() != isForward;
-        if (needToSwitchDirections && 0 == dirholdCyclesRemaining)
+        if (needToSwitchDirections && 0 == dirhold.remaining)
         {
             this->directionPin->set(isForward);
-            dirsetupCyclesRemaining = dirsetupInCycles;
+            dirsetup.remaining = dirsetup.cycles;
         }
 
         int32_t next = DDSaccumulator + toAdd;
@@ -140,7 +135,7 @@ public:
 
         // Hold off on stepping if we're still in dirsetup, but don't update
         // the accumulator so we step immediately after dirstep.
-        if (dirsetupCyclesRemaining > 0)
+        if (dirsetup.remaining > 0)
             return;
 
         // If we still need to switch directions, we're in dirhold so hold off.
