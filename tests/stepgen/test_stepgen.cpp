@@ -79,6 +79,7 @@ private:
     std::vector<Sample> samples;
     int32_t threadFreq;
     int32_t steplen;
+    int32_t stepspace;
 
     std::pair<int, int> countPulses()
     {
@@ -104,6 +105,7 @@ public:
       , tx{}
       , threadFreq(THREAD_FREQ)
       , steplen(0)
+      , stepspace(0)
     {
         pinState.clear();
         rx.rxBuffers[0].jointEnable = 1;
@@ -111,13 +113,14 @@ public:
 
     Scenario& withThreadFrequency(int32_t value) { threadFreq = value; return *this; }
     Scenario& withSteplen(int32_t value) { steplen = value; return *this; }
+    Scenario& withStepspace(int32_t value) { stepspace = value; return *this; }
     Scenario& withJointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
     Scenario& withJointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
 
     Scenario& afterRunning1Second()
     {
         // Scenario runs are not parallelizable
-        TestStepgen sg(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, 0, 0, 0, 0);
+        TestStepgen sg(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, 0, 0, 0);
         for (int i = 0; i < THREAD_FREQ; i++)
         {
             sg.update();
@@ -243,6 +246,18 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         ;
 }
 
+TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
+{
+    Scenario()
+        .withThreadFrequency(40000)
+        .withSteplen(50000)
+        .withStepspace(50000)
+        .withJointFreqCmd(THREAD_FREQ)
+        .afterRunning1Second()
+        .hasStepPulses(10000)
+        ;
+}
+
 int main()
 {
     test_disabled_joint_does_not_step();
@@ -251,6 +266,7 @@ int main()
     test_forward_direction_and_count();
     test_reverse_direction_and_count();
     test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks();
+    test_clamps_maximum_frequency_to_honor_steplen_and_stepspace();
     if (0 == failures)
         printf("\nAll tests passed.\n");
     exit(failures ? EXIT_FAILURE : EXIT_SUCCESS);

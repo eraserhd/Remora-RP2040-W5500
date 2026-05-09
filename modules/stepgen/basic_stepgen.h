@@ -49,7 +49,6 @@ public:
       , DDSaccumulator(0)
       , threadFreq(threadFreq)
       , steplenCyclesRemaining(0)
-      , stepspace(stepspace)
       , dirsetup(dirsetup)
       , dirhold(dirhold)
       , dirdelay(dirdelay)
@@ -81,6 +80,10 @@ public:
             DDSaddValue = 0;
             return;
         }
+        if (frequency > 0)
+            frequency = std::min(frequency, maximumFrequency);
+        else
+            frequency = std::max(frequency, -maximumFrequency);
         DDSaddValue = frequency * ((float)(1 << StepBit) / (float)threadFreq);
     }
 
