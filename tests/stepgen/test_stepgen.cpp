@@ -71,16 +71,37 @@ struct Sample
     bool dir;
 };
 
-struct Scenario
+class Scenario
 {
+private:
     RxPingPongBuffer rx;
     TxPingPongBuffer tx;
     std::vector<Sample> samples;
 
+    std::pair<int, int> countPulses()
+    {
+        std::pair<int, int> result;
+        bool last = false;
+        for (auto const& sample : samples)
+        {
+            if (!last && sample.step)
+            {
+                if (sample.dir)
+                    ++result.first;
+                else
+                    ++result.second;
+            }
+            last = sample.step;
+        }
+        return result;
+    }
+
+public:
     Scenario()
       : rx{}
       , tx{}
     {
+        pinState.clear();
         rx.rxBuffers[0].jointEnable = 1;
     }
 
@@ -90,7 +111,6 @@ struct Scenario
     Scenario& afterRunning1Second()
     {
         // Scenario runs are not parallelizable
-        pinState.clear();
         TestStepgen sg(&rx, &tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
         for (int i = 0; i < THREAD_FREQ; i++)
         {
@@ -104,14 +124,8 @@ struct Scenario
 
     Scenario& hasStepPulses(int expected)
     {
-        int actual = 0;
-        bool last = false;
-        for (auto const& sample : samples)
-        {
-            if (!last && sample.step)
-                ++actual;
-            last = sample.step;
-        }
+        auto pulses = countPulses();
+        int actual = pulses.first + pulses.second;
         if (expected != actual)
             fail("expected %d pulses, but got %d", expected, actual);
         return *this;
@@ -119,14 +133,8 @@ struct Scenario
 
     Scenario& hasForwardStepPulses(int expected)
     {
-        int actual = 0;
-        bool last = false;
-        for (auto const& sample : samples)
-        {
-            if (sample.dir && !last && sample.step)
-                ++actual;
-            last = sample.step;
-        }
+        auto pulses = countPulses();
+        int actual = pulses.first;
         if (expected != actual)
             fail("expected %d forward pulses, but got %d", expected, actual);
         return *this;
@@ -134,14 +142,8 @@ struct Scenario
 
     Scenario& hasReverseStepPulses(int expected)
     {
-        int actual = 0;
-        bool last = false;
-        for (auto const& sample : samples)
-        {
-            if (!sample.dir && !last && sample.step)
-                ++actual;
-            last = sample.step;
-        }
+        auto pulses = countPulses();
+        int actual = pulses.second;
         if (expected != actual)
             fail("expected %d reverse pulses, but got %d", expected, actual);
         return *this;
