@@ -22,7 +22,8 @@ private:
     int32_t steplenInCycles;
     int32_t steplenCyclesRemaining;
     int32_t maximumFrequency;
-    float dirsetup;
+    int32_t dirsetupInCycles;
+    int32_t dirsetupCyclesRemaining;
     float dirhold;
     float dirdelay;
     PinType* stepPin;
@@ -40,7 +41,7 @@ public:
         std::string direction,
         int32_t steplen,
         int32_t stepspace,
-        float dirsetup,
+        int32_t dirsetup,
         float dirhold,
         float dirdelay
     ) : jointNumber(jointNumber)
@@ -49,7 +50,7 @@ public:
       , DDSaccumulator(0)
       , threadFreq(threadFreq)
       , steplenCyclesRemaining(0)
-      , dirsetup(dirsetup)
+      , dirsetupCyclesRemaining(0)
       , dirhold(dirhold)
       , dirdelay(dirdelay)
       , stepPin(new PinType(step, OUTPUT))
@@ -62,15 +63,11 @@ public:
         int32_t stepspaceInCycles = stepspace ? ceil(stepspace / nsPerCycle) : 1;
 
         maximumFrequency = threadFreq / (steplenInCycles + stepspaceInCycles);
+        dirsetupInCycles = dirsetup ? ceil(dirsetup / nsPerCycle) : 1;
     }
 
-    virtual void update() override
-    {
-        this->makePulses();
-    }
-
+    virtual void update() override { this->makePulses(); }
     virtual void updatePost() override {}
-
     virtual void slowUpdate() override {}
 
     void setFrequency(int32_t frequency, bool enabled)
@@ -98,7 +95,25 @@ public:
         int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];
         setFrequency(frequencyCommand, isEnabled);
 
+        if (dirsetupCyclesRemaining && --dirsetupCyclesRemaining)
+            return;
+
         int32_t toAdd = DDSaddValue;
+        if (0 == toAdd)
+            return;
+
+        bool isForward = toAdd > 0;
+        if (this->directionPin->get() != isForward)
+        {
+            this->directionPin->set(isForward);
+            dirsetupCyclesRemaining = dirsetupInCycles;
+
+            // We were supposed to pulse now, so ensure we pulse immediately
+            // after dirsetup.
+            DDSaccumulator = (isForward ? 1 : -1) * ((1 << StepBit) - 1);
+            return;
+        }
+
         int32_t stepNow = DDSaccumulator;
         DDSaccumulator += toAdd;
         stepNow ^= DDSaccumulator;
@@ -106,8 +121,6 @@ public:
         if (!stepNow)
             return;
 
-        bool isForward = toAdd > 0;
-        this->directionPin->set(isForward);
         this->stepPin->set(true);
         steplenCyclesRemaining = steplenInCycles;
         if (isForward)

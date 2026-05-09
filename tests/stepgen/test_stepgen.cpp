@@ -12,16 +12,6 @@
 
 int failures = 0;
 
-void fail(const char* msg, ...)
-{
-    va_list args;
-    ++failures;
-    printf("\n\e[31mFAILED\e[0m: ");
-    va_start(args, msg);
-    vprintf(msg, args);
-    va_end(args);
-}
-
 #define TEST(name) \
     void name##_impl_(void); \
     void name(void) \
@@ -69,6 +59,7 @@ struct Sample
 {
     bool step;
     bool dir;
+    int  count;
 };
 
 class Scenario
@@ -80,6 +71,7 @@ private:
     int32_t threadFreq;
     int32_t steplen;
     int32_t stepspace;
+    int32_t dirsetup;
 
     std::pair<int, int> countPulses()
     {
@@ -99,6 +91,18 @@ private:
         return result;
     }
 
+    void fail(const char *msg, ...)
+    {
+        va_list args;
+        ++failures;
+        printf("\n\n\e[31mFAILED\e[0m: ");
+        va_start(args, msg);
+        vprintf(msg, args);
+        va_end(args);
+
+        dumpSamples();
+    }
+
 public:
     Scenario()
       : rx{}
@@ -106,25 +110,46 @@ public:
       , threadFreq(THREAD_FREQ)
       , steplen(0)
       , stepspace(0)
+      , dirsetup(0)
     {
         pinState.clear();
         rx.rxBuffers[0].jointEnable = 1;
     }
 
+    Scenario& dumpSamples(int n = 45)
+    {
+        printf("\n Step:");
+        for (int i = 0; i < n; i++)
+            printf("%d ", samples[i].step);
+        printf("\n  Dir:");
+        for (int i = 0; i < n; i++)
+            printf("%d ", samples[i].dir);
+        printf("\nCount:");
+        for (int i = 0; i < n; i++)
+            printf("%d ", samples[i].count);
+        return *this;
+    }
+
     Scenario& withThreadFrequency(int32_t value) { threadFreq = value; return *this; }
     Scenario& withSteplen(int32_t value) { steplen = value; return *this; }
     Scenario& withStepspace(int32_t value) { stepspace = value; return *this; }
+    Scenario& withDirsetup(int32_t value) { dirsetup = value; return *this; }
     Scenario& withJointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
     Scenario& withJointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
+    Scenario& withDirPin(bool b) { pinState[DIR_PIN] = b; return *this; }
 
     Scenario& afterRunning1Second()
     {
         // Scenario runs are not parallelizable
-        TestStepgen sg(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, 0, 0, 0);
+        TestStepgen sg(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, 0, 0);
+        samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
         for (int i = 0; i < THREAD_FREQ; i++)
         {
             sg.update();
-            samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN]});
+            if (samples.back().step == pinState[STEP_PIN] && samples.back().dir == pinState[DIR_PIN])
+                ++samples.back().count;
+            else
+                samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
         }
         return *this;
     }
@@ -170,7 +195,7 @@ public:
         int32_t length = 0;
         for (auto const& sample : samples)
         {
-            if (sample.step) ++length;
+            if (sample.step) length += sample.count;
             if (length && !sample.step)
             {
                 if (length != sampleLength)
@@ -179,6 +204,24 @@ public:
                     return *this;
                 }
                 length = 0;
+            }
+        }
+        return *this;
+    }
+
+    Scenario& hasActualDirsetupSamples(int expected)
+    {
+        bool dir = samples.begin()->dir;
+        for (auto const& sample : samples)
+        {
+            if (sample.dir != dir)
+            {
+                if (sample.count < expected)
+                {
+                    fail("expected at least %d samples on dirchange, but saw %d", expected, sample.count);
+                    return *this;
+                }
+                dir = sample.dir;
             }
         }
         return *this;
@@ -209,6 +252,7 @@ TEST(test_zero_frequency_does_not_step)
 TEST(test_half_rate_steps_every_two_updates)
 {
     Scenario()
+        .withDirPin(true)
         .withJointFreqCmd(THREAD_FREQ / 2)
         .afterRunning1Second()
         .hasStepPulses(THREAD_FREQ / 2)
@@ -218,6 +262,7 @@ TEST(test_half_rate_steps_every_two_updates)
 TEST(test_forward_direction_and_count)
 {
     Scenario()
+        .withDirPin(true)
         .withJointFreqCmd(THREAD_FREQ / 2)
         .afterRunning1Second()
         .hasForwardStepPulses(THREAD_FREQ / 2)
@@ -228,6 +273,7 @@ TEST(test_forward_direction_and_count)
 TEST(test_reverse_direction_and_count)
 {
     Scenario()
+        .withDirPin(false)
         .withJointFreqCmd(-THREAD_FREQ / 2)
         .afterRunning1Second()
         .hasReverseStepPulses(THREAD_FREQ / 2)
@@ -249,6 +295,7 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
 TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
 {
     Scenario()
+        .withDirPin(true)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
@@ -257,12 +304,27 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
         .hasStepPulses(10000)
         ;
     Scenario()
+        .withDirPin(false)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
         .withJointFreqCmd(-THREAD_FREQ)
         .afterRunning1Second()
         .hasStepPulses(10000)
+        ;
+}
+
+TEST(test_waits_dirsetup_before_pulsing)
+{
+    Scenario()
+        .withDirPin(false)
+        .withThreadFrequency(40000)
+        .withSteplen(50000)
+        .withStepspace(50000)
+        .withDirsetup(150000)
+        .withJointFreqCmd(THREAD_FREQ/2)
+        .afterRunning1Second()
+        .hasActualDirsetupSamples(6)
         ;
 }
 
@@ -275,6 +337,7 @@ int main()
     test_reverse_direction_and_count();
     test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks();
     test_clamps_maximum_frequency_to_honor_steplen_and_stepspace();
+    test_waits_dirsetup_before_pulsing();
     if (0 == failures)
         printf("\nAll tests passed.\n");
     exit(failures ? EXIT_FAILURE : EXIT_SUCCESS);
