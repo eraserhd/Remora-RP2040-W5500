@@ -105,8 +105,8 @@ public:
         rx.rxBuffers[0].jointEnable = 1;
     }
 
-    Scenario& jointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
-    Scenario& jointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
+    Scenario& withJointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
+    Scenario& withJointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
 
     Scenario& afterRunning1Second()
     {
@@ -163,8 +163,8 @@ public:
 TEST(test_disabled_joint_does_not_step)
 {
     Scenario()
-        .jointEnable(0)
-        .jointFreqCmd(100)
+        .withJointEnable(0)
+        .withJointFreqCmd(100)
         .afterRunning1Second()
         .hasStepPulses(0)
         ;
@@ -173,7 +173,7 @@ TEST(test_disabled_joint_does_not_step)
 TEST(test_zero_frequency_does_not_step)
 {
     Scenario()
-        .jointFreqCmd(0)
+        .withJointFreqCmd(0)
         .afterRunning1Second()
         .hasStepPulses(0)
         ;
@@ -182,7 +182,7 @@ TEST(test_zero_frequency_does_not_step)
 TEST(test_full_rate_steps_every_update)
 {
     Scenario()
-        .jointFreqCmd(THREAD_FREQ)
+        .withJointFreqCmd(THREAD_FREQ)
         .afterRunning1Second()
         .hasStepPulses(THREAD_FREQ)
         ;
@@ -191,7 +191,7 @@ TEST(test_full_rate_steps_every_update)
 TEST(test_half_rate_steps_every_two_updates)
 {
     Scenario()
-        .jointFreqCmd(THREAD_FREQ / 2)
+        .withJointFreqCmd(THREAD_FREQ / 2)
         .afterRunning1Second()
         .hasStepPulses(THREAD_FREQ / 2)
         ;
@@ -200,7 +200,7 @@ TEST(test_half_rate_steps_every_two_updates)
 TEST(test_forward_direction_and_count)
 {
     Scenario()
-        .jointFreqCmd(THREAD_FREQ)
+        .withJointFreqCmd(THREAD_FREQ)
         .afterRunning1Second()
         .hasForwardStepPulses(THREAD_FREQ)
         .hasJointFeedback(THREAD_FREQ)
@@ -210,7 +210,7 @@ TEST(test_forward_direction_and_count)
 TEST(test_reverse_direction_and_count)
 {
     Scenario()
-        .jointFreqCmd(-THREAD_FREQ)
+        .withJointFreqCmd(-THREAD_FREQ)
         .afterRunning1Second()
         .hasReverseStepPulses(THREAD_FREQ)
         .hasJointFeedback(-THREAD_FREQ)
