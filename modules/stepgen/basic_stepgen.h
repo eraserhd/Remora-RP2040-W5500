@@ -8,40 +8,44 @@
 #include "../../remora.h"
 #include "../module.h"
 
-struct CycleCounter
-{
-    int32_t remaining;
-    int32_t cycles;
-
-public:
-    inline CycleCounter(int32_t threadFreq, int32_t ns)
-        : remaining(0)
-    {
-        float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
-        cycles = ns ? ceil(ns / nsPerCycle) : 1;
-    }
-
-    inline void start()
-    {
-        remaining = cycles;
-    }
-
-    inline void tick()
-    {
-        if (remaining)
-            --remaining;
-    }
-
-    inline bool tickAndExpired()
-    {
-        if (0 == remaining) return false;
-        return 0 == --remaining;
-    }
-};
-
 template<class PinType>
 class BasicStepgen : public Module
 {
+    struct CycleCounter
+    {
+        int32_t remaining;
+        int32_t cycles;
+
+        inline CycleCounter(int32_t threadFreq, int32_t ns)
+            : remaining(0)
+        {
+            float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
+            cycles = ns ? ceil(ns / nsPerCycle) : 1;
+        }
+
+        inline void start()
+        {
+            remaining = cycles;
+        }
+
+        inline bool active() const
+        {
+            return remaining > 0;
+        }
+
+        inline void tick()
+        {
+            if (remaining)
+                --remaining;
+        }
+
+        inline bool tickAndExpired()
+        {
+            if (0 == remaining) return false;
+            return 0 == --remaining;
+        }
+    };
+
 private:
     static constexpr int StepBit = 22;
 
@@ -131,7 +135,7 @@ public:
 
         bool isForward = toAdd > 0;
         bool needToSwitchDirections = this->directionPin->get() != isForward;
-        if (needToSwitchDirections && 0 == dirhold.remaining)
+        if (needToSwitchDirections && !dirhold.active())
         {
             this->directionPin->set(isForward);
             dirsetup.start();
@@ -147,7 +151,7 @@ public:
 
         // Hold off on stepping if we're still in dirsetup, but don't update
         // the accumulator so we step immediately after dirstep.
-        if (dirsetup.remaining > 0)
+        if (dirsetup.active())
             return;
 
         // If we still need to switch directions, we're in dirhold so hold off.
