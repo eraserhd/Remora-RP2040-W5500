@@ -20,6 +20,12 @@ public:
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
         cycles = ns ? ceil(ns / nsPerCycle) : 1;
     }
+
+    inline void tick()
+    {
+        if (remaining)
+            --remaining;
+    }
 };
 
 template<class PinType>
@@ -95,8 +101,7 @@ public:
 
     void makePulses()
     {
-        if (dirhold.remaining)
-            --dirhold.remaining;
+        dirhold.tick();
         if (steplen.remaining)
         {
             if (0 == --steplen.remaining)
@@ -105,8 +110,7 @@ public:
                 dirhold.remaining = dirhold.cycles;
             }
         }
-        if (dirsetup.remaining)
-            --dirsetup.remaining;
+        dirsetup.tick();
 
         rxData_t* rxData = getCurrentRxBuffer(this->rxBuffer);
         bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
