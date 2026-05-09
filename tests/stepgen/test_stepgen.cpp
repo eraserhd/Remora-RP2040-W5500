@@ -62,6 +62,10 @@ struct Sample
     int  count;
 };
 
+using Step = std::vector<int>;
+using Dir = std::vector<int>;
+using Count = std::vector<int>;
+
 class Scenario
 {
 private:
@@ -226,6 +230,17 @@ public:
         }
         return *this;
     }
+
+    Scenario& producesSamples(Step steps, Dir dirs, Count counts)
+    {
+        bool equal = true;
+        for (int i = 0; i < steps.size(); i++)
+            if (samples[i].step != bool(steps[i]) || samples[i].dir != bool(dirs[i]) || samples[i].count != counts[i])
+                equal = false;
+        if (!equal)
+            fail("produced the wrong samples");
+        return *this;
+    }
 };
 
 // ---
@@ -325,7 +340,11 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withJointFreqCmd(THREAD_FREQ/2)
         .afterRunning1Second()
         .hasActualDirsetupSamples(6)
-        ;
+        .producesSamples(
+             Step{0,0,1,0},
+              Dir{0,1,1,1},
+            Count{1,6,2,2}
+        );
 }
 
 int main()
