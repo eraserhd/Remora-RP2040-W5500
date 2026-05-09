@@ -87,11 +87,8 @@ struct Scenario
     Scenario& jointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
     Scenario& jointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
 
-    void run()
+    Scenario& afterRunning1Second()
     {
-        if (!samples.empty())
-            return; // already run
-
         // Scenario runs are not parallelizable
         pinState.clear();
         TestStepgen sg(&rx, &tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
@@ -102,11 +99,11 @@ struct Scenario
             sg.updatePost();
             samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN]});
         }
+        return *this;
     }
 
     Scenario& hasStepPulses(int expected)
     {
-        run();
         int actual = 0;
         bool last = false;
         for (auto const& sample : samples)
@@ -122,7 +119,6 @@ struct Scenario
 
     Scenario& hasForwardStepPulses(int expected)
     {
-        run();
         int actual = 0;
         bool last = false;
         for (auto const& sample : samples)
@@ -138,7 +134,6 @@ struct Scenario
 
     Scenario& hasReverseStepPulses(int expected)
     {
-        run();
         int actual = 0;
         bool last = false;
         for (auto const& sample : samples)
@@ -154,7 +149,6 @@ struct Scenario
 
     Scenario& hasJointFeedback(int expected)
     {
-        run();
         int actual = tx.txBuffers[0].jointFeedback[0];
         if (expected != tx.txBuffers[0].jointFeedback[0])
             fail("expected jointFeedback of %d, but got %d", expected, actual);
@@ -169,38 +163,43 @@ TEST(test_disabled_joint_does_not_step)
     Scenario()
         .jointEnable(0)
         .jointFreqCmd(100)
+        .afterRunning1Second()
         .hasStepPulses(0)
         ;
 }
 
 TEST(test_zero_frequency_does_not_step)
 {
-    Scenario sc = Scenario()
+    Scenario()
         .jointFreqCmd(0)
+        .afterRunning1Second()
         .hasStepPulses(0)
         ;
 }
 
 TEST(test_full_rate_steps_every_update)
 {
-    Scenario sc = Scenario()
+    Scenario()
         .jointFreqCmd(THREAD_FREQ)
+        .afterRunning1Second()
         .hasStepPulses(THREAD_FREQ)
         ;
 }
 
 TEST(test_half_rate_steps_every_two_updates)
 {
-    Scenario sc = Scenario()
+    Scenario()
         .jointFreqCmd(THREAD_FREQ / 2)
+        .afterRunning1Second()
         .hasStepPulses(THREAD_FREQ / 2)
         ;
 }
 
 TEST(test_forward_direction_and_count)
 {
-    Scenario sc = Scenario()
+    Scenario()
         .jointFreqCmd(THREAD_FREQ)
+        .afterRunning1Second()
         .hasForwardStepPulses(THREAD_FREQ)
         .hasJointFeedback(THREAD_FREQ)
         ;
@@ -208,8 +207,9 @@ TEST(test_forward_direction_and_count)
 
 TEST(test_reverse_direction_and_count)
 {
-    Scenario sc = Scenario()
+    Scenario()
         .jointFreqCmd(-THREAD_FREQ)
+        .afterRunning1Second()
         .hasReverseStepPulses(THREAD_FREQ)
         .hasJointFeedback(-THREAD_FREQ)
         ;
