@@ -299,10 +299,16 @@ TEST(test_reverse_direction_and_count)
 TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
 {
     Scenario()
+        .withDirPin(true)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withJointFreqCmd(25)
         .afterRunning1Second()
+        .producesSamples(
+             Step{0,    1, 0},
+              Dir{1,    1, 1},
+            Count{1601, 2, 1598}
+        )
         .madePulsesOfLength(2)
         ;
 }

@@ -89,14 +89,13 @@ public:
         if (steplenCyclesRemaining)
             if (0 == --steplenCyclesRemaining)
                 this->stepPin->set(false);
+        if (dirsetupCyclesRemaining)
+            --dirsetupCyclesRemaining;
 
         rxData_t* rxData = getCurrentRxBuffer(this->rxBuffer);
         bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
         int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];
         setFrequency(frequencyCommand, isEnabled);
-
-        if (dirsetupCyclesRemaining && --dirsetupCyclesRemaining)
-            return;
 
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)
@@ -107,20 +106,22 @@ public:
         {
             this->directionPin->set(isForward);
             dirsetupCyclesRemaining = dirsetupInCycles;
+        }
 
-            // We were supposed to pulse now, so ensure we pulse immediately
-            // after dirsetup.
-            DDSaccumulator = (isForward ? 1 : -1) * ((1 << StepBit) - 1);
+        int32_t next = DDSaccumulator + toAdd;
+        bool timeToStep = (next ^ DDSaccumulator) & (1 << StepBit);
+        if (!timeToStep)
+        {
+            DDSaccumulator = next;
             return;
         }
 
-        int32_t stepNow = DDSaccumulator;
-        DDSaccumulator += toAdd;
-        stepNow ^= DDSaccumulator;
-        stepNow &= (1L << StepBit);
-        if (!stepNow)
+        // Hold off on stepping if we're still in dirsetup, but don't update
+        // the accumulator so we step immediately after dirstep
+        if (dirsetupCyclesRemaining > 0)
             return;
 
+        DDSaccumulator = next;
         this->stepPin->set(true);
         steplenCyclesRemaining = steplenInCycles;
         if (isForward)
