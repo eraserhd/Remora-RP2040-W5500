@@ -21,10 +21,21 @@ public:
         cycles = ns ? ceil(ns / nsPerCycle) : 1;
     }
 
+    inline void start()
+    {
+        remaining = cycles;
+    }
+
     inline void tick()
     {
         if (remaining)
             --remaining;
+    }
+
+    inline bool tickAndExpired()
+    {
+        if (0 == remaining) return false;
+        return 0 == --remaining;
     }
 };
 
@@ -102,13 +113,10 @@ public:
     void makePulses()
     {
         dirhold.tick();
-        if (steplen.remaining)
+        if (steplen.tickAndExpired())
         {
-            if (0 == --steplen.remaining)
-            {
-                this->stepPin->set(false);
-                dirhold.remaining = dirhold.cycles;
-            }
+            this->stepPin->set(false);
+            dirhold.start();
         }
         dirsetup.tick();
 
@@ -126,7 +134,7 @@ public:
         if (needToSwitchDirections && 0 == dirhold.remaining)
         {
             this->directionPin->set(isForward);
-            dirsetup.remaining = dirsetup.cycles;
+            dirsetup.start();
         }
 
         int32_t next = DDSaccumulator + toAdd;
@@ -148,7 +156,7 @@ public:
 
         DDSaccumulator = next;
         this->stepPin->set(true);
-        steplen.remaining = steplen.cycles;
+        steplen.start();
         if (isForward)
             ++this->rawCount;
         else
