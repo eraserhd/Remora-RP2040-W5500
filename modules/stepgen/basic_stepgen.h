@@ -2,6 +2,7 @@
 #define BASIC_STEPGEN_H
 
 #include <cstdint>
+#include <cmath>
 #include <string>
 
 #include "../../remora.h"
@@ -18,7 +19,8 @@ private:
     int32_t DDSaddValue;
     int32_t DDSaccumulator;
     int32_t threadFreq;
-    float steplen;
+    int32_t steplenInCycles;
+    int32_t steplenCyclesRemaining;
     float stepspace;
     float dirsetup;
     float dirhold;
@@ -36,7 +38,7 @@ public:
         int jointNumber,
         std::string step,
         std::string direction,
-        float steplen,
+        int32_t steplen,
         float stepspace,
         float dirsetup,
         float dirhold,
@@ -46,7 +48,7 @@ public:
       , DDSaddValue(0)
       , DDSaccumulator(0)
       , threadFreq(threadFreq)
-      , steplen(steplen)
+      , steplenCyclesRemaining(0)
       , stepspace(stepspace)
       , dirsetup(dirsetup)
       , dirhold(dirhold)
@@ -56,6 +58,11 @@ public:
       , rxBuffer(rxBuffer)
       , txBuffer(txBuffer)
     {
+        float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
+        if (0 == steplen)
+           steplenInCycles = 1; // Default steplen is 1 cycle
+        else
+           steplenInCycles = ceil(steplen / nsPerCycle);
     }
 
     virtual void update()
@@ -63,10 +70,7 @@ public:
         this->makePulses();
     }
 
-    virtual void updatePost()
-    {
-        this->stopPulses();
-    }
+    virtual void updatePost() override {}
 
     virtual void slowUpdate() {}
 
@@ -82,6 +86,10 @@ public:
 
     void makePulses()
     {
+        if (steplenCyclesRemaining)
+            if (0 == --steplenCyclesRemaining)
+                this->stepPin->set(false);
+
         rxData_t* rxData = getCurrentRxBuffer(this->rxBuffer);
         bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
         int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];
@@ -98,6 +106,7 @@ public:
         bool isForward = toAdd > 0;
         this->directionPin->set(isForward);
         this->stepPin->set(true);
+        steplenCyclesRemaining = steplenInCycles;
         if (isForward)
             ++this->rawCount;
         else
@@ -105,11 +114,6 @@ public:
 
         txData_t* txData = getCurrentTxBuffer(this->txBuffer);
         txData->jointFeedback[this->jointNumber] = this->rawCount;
-    }
-
-    void stopPulses()
-    {
-        this->stepPin->set(false);
     }
 };
 

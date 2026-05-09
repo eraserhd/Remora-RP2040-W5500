@@ -77,6 +77,8 @@ private:
     RxPingPongBuffer rx;
     TxPingPongBuffer tx;
     std::vector<Sample> samples;
+    int32_t threadFreq;
+    int32_t steplen;
 
     std::pair<int, int> countPulses()
     {
@@ -100,23 +102,25 @@ public:
     Scenario()
       : rx{}
       , tx{}
+      , threadFreq(THREAD_FREQ)
+      , steplen(0)
     {
         pinState.clear();
         rx.rxBuffers[0].jointEnable = 1;
     }
 
+    Scenario& withThreadFrequency(int32_t value) { threadFreq = value; return *this; }
+    Scenario& withSteplen(int32_t value) { steplen = value; return *this; }
     Scenario& withJointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
     Scenario& withJointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
 
     Scenario& afterRunning1Second()
     {
         // Scenario runs are not parallelizable
-        TestStepgen sg(&rx, &tx, THREAD_FREQ, 0, STEP_PIN, DIR_PIN, 0, 0, 0, 0, 0);
+        TestStepgen sg(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, 0, 0, 0, 0);
         for (int i = 0; i < THREAD_FREQ; i++)
         {
             sg.update();
-            samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN]});
-            sg.updatePost();
             samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN]});
         }
         return *this;
@@ -156,6 +160,26 @@ public:
             fail("expected jointFeedback of %d, but got %d", expected, actual);
         return *this;
     }
+
+    Scenario& madePulsesOfLength(int sampleLength)
+    {
+        int32_t n = 0;
+        int32_t length = 0;
+        for (auto const& sample : samples)
+        {
+            if (sample.step) ++length;
+            if (length && !sample.step)
+            {
+                if (length != sampleLength)
+                {
+                    fail("pulse %d had length %d (expected length %d).", n, length, sampleLength);
+                    return *this;
+                }
+                length = 0;
+            }
+        }
+        return *this;
+    }
 };
 
 // ---
@@ -179,15 +203,6 @@ TEST(test_zero_frequency_does_not_step)
         ;
 }
 
-TEST(test_full_rate_steps_every_update)
-{
-    Scenario()
-        .withJointFreqCmd(THREAD_FREQ)
-        .afterRunning1Second()
-        .hasStepPulses(THREAD_FREQ)
-        ;
-}
-
 TEST(test_half_rate_steps_every_two_updates)
 {
     Scenario()
@@ -200,20 +215,31 @@ TEST(test_half_rate_steps_every_two_updates)
 TEST(test_forward_direction_and_count)
 {
     Scenario()
-        .withJointFreqCmd(THREAD_FREQ)
+        .withJointFreqCmd(THREAD_FREQ / 2)
         .afterRunning1Second()
-        .hasForwardStepPulses(THREAD_FREQ)
-        .hasJointFeedback(THREAD_FREQ)
+        .hasForwardStepPulses(THREAD_FREQ / 2)
+        .hasJointFeedback(THREAD_FREQ / 2)
         ;
 }
 
 TEST(test_reverse_direction_and_count)
 {
     Scenario()
-        .withJointFreqCmd(-THREAD_FREQ)
+        .withJointFreqCmd(-THREAD_FREQ / 2)
         .afterRunning1Second()
-        .hasReverseStepPulses(THREAD_FREQ)
-        .hasJointFeedback(-THREAD_FREQ)
+        .hasReverseStepPulses(THREAD_FREQ / 2)
+        .hasJointFeedback(-THREAD_FREQ / 2)
+        ;
+}
+
+TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
+{
+    Scenario()
+        .withThreadFrequency(40000)
+        .withSteplen(50000)
+        .withJointFreqCmd(25)
+        .afterRunning1Second()
+        .madePulsesOfLength(2)
         ;
 }
 
@@ -221,10 +247,10 @@ int main()
 {
     test_disabled_joint_does_not_step();
     test_zero_frequency_does_not_step();
-    test_full_rate_steps_every_update();
     test_half_rate_steps_every_two_updates();
     test_forward_direction_and_count();
     test_reverse_direction_and_count();
+    test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks();
     if (0 == failures)
         printf("\nAll tests passed.\n");
     exit(failures ? EXIT_FAILURE : EXIT_SUCCESS);
