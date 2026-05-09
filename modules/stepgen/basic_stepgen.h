@@ -21,7 +21,7 @@ private:
     int32_t threadFreq;
     int32_t steplenInCycles;
     int32_t steplenCyclesRemaining;
-    float stepspace;
+    int32_t maximumFrequency;
     float dirsetup;
     float dirhold;
     float dirdelay;
@@ -39,7 +39,7 @@ public:
         std::string step,
         std::string direction,
         int32_t steplen,
-        float stepspace,
+        int32_t stepspace,
         float dirsetup,
         float dirhold,
         float dirdelay
@@ -60,6 +60,9 @@ public:
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
         steplenInCycles = steplen ? ceil(steplen / nsPerCycle) : 1;
+        int32_t stepspaceInCycles = stepspace ? ceil(stepspace / nsPerCycle) : 1;
+
+        maximumFrequency = threadFreq / (steplenInCycles + stepspaceInCycles);
     }
 
     virtual void update()
