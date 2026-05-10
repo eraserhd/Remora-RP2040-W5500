@@ -66,7 +66,12 @@
 "            \"Comment\": \"X - Joint 0 step generator\",\n" \
 "            \"Joint Number\": 0,\n" \
 "            \"Step Pin\": \"GP02\",\n" \
-"            \"Direction Pin\": \"GP03\"\n" \
+"            \"Direction Pin\": \"GP03\",\n" \
+"            \"steplen\": 55000,\n" \
+"            \"stepspace\": 55000,\n" \
+"            \"dirhold\": 150000,\n" \
+"            \"dirsetup\": 150000,\n" \
+"            \"dirdelay\": 150000\n" \
 "        },\n" \
 "        {\n" \
 "            \"Thread\": \"Base\",\n" \
@@ -74,7 +79,12 @@
 "            \"Comment\": \"Y - Joint 1 step generator\",\n" \
 "            \"Joint Number\": 1,\n" \
 "            \"Step Pin\": \"GP04\",\n" \
-"            \"Direction Pin\": \"GP05\"\n" \
+"            \"Direction Pin\": \"GP05\",\n" \
+"            \"steplen\": 55000,\n" \
+"            \"stepspace\": 55000,\n" \
+"            \"dirhold\": 150000,\n" \
+"            \"dirsetup\": 150000,\n" \
+"            \"dirdelay\": 150000\n" \
 "        },\n" \
 "        {\n" \
 "            \"Thread\": \"Base\",\n" \
@@ -82,7 +92,12 @@
 "            \"Comment\": \"Z - Joint 2 step generator\",\n" \
 "            \"Joint Number\": 2,\n" \
 "            \"Step Pin\": \"GP07\",\n" \
-"            \"Direction Pin\": \"GP08\"\n" \
+"            \"Direction Pin\": \"GP08\",\n" \
+"            \"steplen\": 55000,\n" \
+"            \"stepspace\": 55000,\n" \
+"            \"dirhold\": 150000,\n" \
+"            \"dirsetup\": 150000,\n" \
+"            \"dirdelay\": 150000\n" \
 "        },\n" \
 "        {\n" \
 "            \"Thread\": \"Base\",\n" \
