@@ -78,6 +78,7 @@ private:
     int32_t stepspace;
     int32_t dirsetup;
     int32_t dirhold;
+    int32_t dirdelay;
     std::optional<TestStepgen> stepgen;
 
     std::pair<int, int> countPulses()
@@ -102,7 +103,7 @@ private:
     {
         if (!stepgen.has_value())
         {
-            stepgen.emplace(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, 0);
+            stepgen.emplace(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
             samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
         }
     }
@@ -136,6 +137,7 @@ public:
       , stepspace(0)
       , dirsetup(0)
       , dirhold(0)
+      , dirdelay(0)
     {
         pinState.clear();
         rx.rxBuffers[0].jointEnable = 1;
@@ -143,6 +145,7 @@ public:
 
     Scenario& dumpSamples(int n = 45)
     {
+        n = std::min(n, int(samples.size()));
         printf("\n Step:");
         for (int i = 0; i < n; i++)
             printf("%d ", samples[i].step);
@@ -160,6 +163,7 @@ public:
     Scenario& withStepspace(int32_t value) { stepspace = value; return *this; }
     Scenario& withDirsetup(int32_t value) { dirsetup = value; return *this; }
     Scenario& withDirhold(int32_t value) { dirhold = value; return *this; }
+    Scenario& withDirdelay(int32_t value) { dirdelay = value; return *this; }
     Scenario& withJointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
     Scenario& withJointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
     Scenario& withDirPin(bool b) { pinState[DIR_PIN] = b; return *this; }
@@ -407,6 +411,25 @@ TEST(test_waits_dirhold_before_changing_direction)
         );
 }
 
+TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
+{
+    Scenario()
+        .withDirPin(false)
+        .withThreadFrequency(40000)
+        .withSteplen(50000)
+        .withStepspace(50000)
+        .withDirdelay(150000)
+        .withJointFreqCmd(-THREAD_FREQ/2)
+        .afterPulses(1)
+        .withJointFreqCmd(THREAD_FREQ/2)
+        .afterPulses(1)
+        .producesSamples(
+             Step{0, 1, 0, 0, 1, 0},
+              Dir{0, 0, 0, 1, 1, 1},
+            Count{1, 2, 1, 3, 2, 1}
+        );
+}
+
 int main()
 {
     test_disabled_joint_does_not_step();
@@ -418,6 +441,7 @@ int main()
     test_clamps_maximum_frequency_to_honor_steplen_and_stepspace();
     test_waits_dirsetup_before_pulsing();
     test_waits_dirhold_before_changing_direction();
+    test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction();
     if (0 == failures)
         printf("\nAll tests passed.\n");
     exit(failures ? EXIT_FAILURE : EXIT_SUCCESS);

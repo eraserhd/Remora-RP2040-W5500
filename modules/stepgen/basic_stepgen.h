@@ -58,7 +58,8 @@ private:
     int32_t maximumFrequency;
     CycleCounter dirsetup;
     CycleCounter dirhold;
-    float dirdelay;
+    CycleCounter dirdelay;
+    bool lastPulseWasForward;
     PinType* stepPin;
     PinType* directionPin;
     RxPingPongBuffer* rxBuffer;
@@ -76,7 +77,7 @@ public:
         int32_t stepspaceNs,
         int32_t dirsetupNs,
         int32_t dirholdNs,
-        float dirdelay
+        int32_t dirdelayNs
     ) : jointNumber(jointNumber)
       , rawCount(0)
       , DDSaddValue(0)
@@ -85,7 +86,8 @@ public:
       , steplen(threadFreq, steplenNs)
       , dirsetup(threadFreq, dirsetupNs)
       , dirhold(threadFreq, dirholdNs)
-      , dirdelay(dirdelay)
+      , dirdelay(threadFreq, dirdelayNs)
+      , lastPulseWasForward(false)
       , stepPin(new PinType(step, OUTPUT))
       , directionPin(new PinType(direction, OUTPUT))
       , rxBuffer(rxBuffer)
@@ -123,6 +125,7 @@ public:
             dirhold.start();
         }
         dirsetup.tick();
+        dirdelay.tick();
 
         rxData_t* rxData = getCurrentRxBuffer(this->rxBuffer);
         bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
@@ -158,13 +161,19 @@ public:
         if (needToSwitchDirections)
             return;
 
+        // Hold pulse if we are in dirdelay
+        if (dirdelay.active() && isForward != lastPulseWasForward)
+            return;
+
         DDSaccumulator = next;
         this->stepPin->set(true);
-        steplen.start();
         if (isForward)
             ++this->rawCount;
         else
             --this->rawCount;
+        steplen.start();
+        lastPulseWasForward = isForward;
+        dirdelay.start();
 
         txData_t* txData = getCurrentTxBuffer(this->txBuffer);
         txData->jointFeedback[this->jointNumber] = this->rawCount;
