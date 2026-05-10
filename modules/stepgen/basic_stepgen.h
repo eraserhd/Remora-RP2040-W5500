@@ -161,7 +161,7 @@ public:
         if (needToSwitchDirections)
             return;
 
-        // Hold pulse if we are in dirdelay
+        // Hold opposite direction pulse if we are in dirdelay
         if (dirdelay.active() && isForward != lastPulseWasForward)
             return;
 
