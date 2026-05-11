@@ -4,7 +4,7 @@
                 MODULE CONFIGURATION AND CREATION FROM JSON     
 ************************************************************************/
 
-void createStepgen()
+Stepgen *createStepgen()
 {
     const char* comment = module["Comment"];
     printf("\n%s\n",comment);
@@ -25,11 +25,11 @@ void createStepgen()
     //ptrJointEnable = &rxData.jointEnable;
 
     // create the step generator, register it in the thread
-    Module* stepgen = new Stepgen(
+    Stepgen* stepgen = new Stepgen(
         &rxPingPongBuffer, &txPingPongBuffer,
         base_freq, joint, step, dir, steplen, stepspace,
         dirsetup, dirhold, dirdelay
     );
     baseThread->registerModule(stepgen);
-    baseThread->registerModulePost(stepgen);
+    return stepgen;
 }

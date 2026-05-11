@@ -122,6 +122,8 @@ RemoraComms* comms;
 RxPingPongBuffer rxPingPongBuffer;
 TxPingPongBuffer txPingPongBuffer;
 
+Stepgen *stepgens[JOINTS] = {};
+
 // Json config file stuff
 const char defaultConfig[] = DEFAULT_CONFIG;
 
@@ -376,7 +378,8 @@ void loadModules()
 
             if (!strcmp(type,"Stepgen"))
             {
-                createStepgen();
+                int jointNumber = module["Joint Number"];
+                stepgens[jointNumber] = createStepgen();
             }
          }
         else if (!strcmp(thread,"Servo"))
@@ -809,7 +812,18 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
             txBuffer->header = PRU_ACKNOWLEDGE;
             txlen = BUFFER_SIZE;
             comms->dataReceived();
-        }	
+
+            for (int jointNumber = 0; jointNumber < JOINTS; jointNumber++)
+            {
+                if (stepgens[jointNumber] != NULL)
+                {
+                    rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
+                    bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
+                    int32_t frequencyCommand = rxData->jointFreqCmd[jointNumber];
+                    stepgens[jointNumber]->setFrequency(frequencyCommand, isEnabled);
+                }
+            }
+        }
     }
    
 	// allocate pbuf from RAM

@@ -51,7 +51,7 @@ private:
 
     int jointNumber;
     int32_t rawCount;
-    int32_t DDSaddValue;
+    volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;
     int32_t threadFreq;
     CycleCounter steplen;
@@ -102,6 +102,7 @@ public:
     virtual void updatePost() override {}
     virtual void slowUpdate() override {}
 
+    // Callable from another CPU, owing to DDSaddValue volatility
     void setFrequency(int32_t frequency, bool enabled)
     {
         if (!enabled)
@@ -126,11 +127,6 @@ public:
         }
         dirsetup.tick();
         dirdelay.tick();
-
-        rxData_t* rxData = getCurrentRxBuffer(this->rxBuffer);
-        bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
-        int32_t frequencyCommand = rxData->jointFreqCmd[this->jointNumber];
-        setFrequency(frequencyCommand, isEnabled);
 
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)

@@ -8,8 +8,8 @@
 
 #include "basic_stepgen.h"
 
-void createStepgen(void);
-
 using Stepgen = BasicStepgen<Pin>;
+
+Stepgen *createStepgen(void);
 
 #endif

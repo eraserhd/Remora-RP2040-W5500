@@ -164,9 +164,14 @@ public:
     Scenario& withDirsetup(int32_t value) { dirsetup = value; return *this; }
     Scenario& withDirhold(int32_t value) { dirhold = value; return *this; }
     Scenario& withDirdelay(int32_t value) { dirdelay = value; return *this; }
-    Scenario& withJointEnable(uint8_t value) { rx.rxBuffers[0].jointEnable = value; return *this; }
-    Scenario& withJointFreqCmd(int32_t value) { rx.rxBuffers[0].jointFreqCmd[0] = value; return *this; }
     Scenario& withDirPin(bool b) { pinState[DIR_PIN] = b; return *this; }
+
+    Scenario& withFrequency(int32_t frequency, bool enabled = true)
+    {
+        start();
+        stepgen->setFrequency(frequency, enabled);
+        return *this;
+    }
 
     Scenario& afterRunning1Second()
     {
@@ -274,8 +279,7 @@ public:
 TEST(test_disabled_joint_does_not_step)
 {
     Scenario()
-        .withJointEnable(0)
-        .withJointFreqCmd(100)
+        .withFrequency(100, false)
         .afterRunning1Second()
         .hasStepPulses(0)
         ;
@@ -284,7 +288,7 @@ TEST(test_disabled_joint_does_not_step)
 TEST(test_zero_frequency_does_not_step)
 {
     Scenario()
-        .withJointFreqCmd(0)
+        .withFrequency(0, true)
         .afterRunning1Second()
         .hasStepPulses(0)
         ;
@@ -294,7 +298,7 @@ TEST(test_half_rate_steps_every_two_updates)
 {
     Scenario()
         .withDirPin(true)
-        .withJointFreqCmd(THREAD_FREQ / 2)
+        .withFrequency(THREAD_FREQ / 2, true)
         .afterRunning1Second()
         .hasStepPulses(THREAD_FREQ / 2)
         ;
@@ -304,7 +308,7 @@ TEST(test_forward_direction_and_count)
 {
     Scenario()
         .withDirPin(true)
-        .withJointFreqCmd(THREAD_FREQ / 2)
+        .withFrequency(THREAD_FREQ / 2, true)
         .afterRunning1Second()
         .hasForwardStepPulses(THREAD_FREQ / 2)
         .hasJointFeedback(THREAD_FREQ / 2)
@@ -315,7 +319,7 @@ TEST(test_reverse_direction_and_count)
 {
     Scenario()
         .withDirPin(false)
-        .withJointFreqCmd(-THREAD_FREQ / 2)
+        .withFrequency(-THREAD_FREQ / 2, true)
         .afterRunning1Second()
         .hasReverseStepPulses(THREAD_FREQ / 2)
         .hasJointFeedback(-THREAD_FREQ / 2)
@@ -328,7 +332,7 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withDirPin(true)
         .withThreadFrequency(40000)
         .withSteplen(50000)
-        .withJointFreqCmd(25)
+        .withFrequency(25)
         .afterRunning1Second()
         .producesSamples(
              Step{0,    1, 0},
@@ -346,7 +350,7 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
-        .withJointFreqCmd(THREAD_FREQ)
+        .withFrequency(THREAD_FREQ, true)
         .afterRunning1Second()
         .hasStepPulses(10000)
         ;
@@ -355,7 +359,7 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
-        .withJointFreqCmd(-THREAD_FREQ)
+        .withFrequency(-THREAD_FREQ, true)
         .afterRunning1Second()
         .hasStepPulses(10000)
         ;
@@ -369,7 +373,7 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirsetup(150000)
-        .withJointFreqCmd(THREAD_FREQ/2)
+        .withFrequency(THREAD_FREQ/2)
         .afterRunning1Second()
         .producesSamples(
              Step{0,0,1,0},
@@ -382,7 +386,7 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirsetup(150000)
-        .withJointFreqCmd(-THREAD_FREQ/2)
+        .withFrequency(-THREAD_FREQ/2)
         .afterRunning1Second()
         .producesSamples(
              Step{0,0,1,0},
@@ -400,9 +404,9 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withStepspace(50000)
         .withDirsetup(75000)
         .withDirhold(150000)
-        .withJointFreqCmd(-THREAD_FREQ/2)
+        .withFrequency(-THREAD_FREQ/2)
         .afterPulses(1)
-        .withJointFreqCmd(THREAD_FREQ/2)
+        .withFrequency(THREAD_FREQ/2)
         .afterRunning1Second()
         .producesSamples(
              Step{0, 1, 0, 0, 1, 0},
@@ -419,9 +423,9 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirdelay(150000)
-        .withJointFreqCmd(-THREAD_FREQ/2)
+        .withFrequency(-THREAD_FREQ/2)
         .afterPulses(1)
-        .withJointFreqCmd(THREAD_FREQ/2)
+        .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .producesSamples(
              Step{0, 1, 0, 0, 1, 0},
