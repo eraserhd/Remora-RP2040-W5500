@@ -73,12 +73,6 @@ void pruThread::run(void)
 	// iterate over the Thread pointer vector to run all instances of Module::runModule()
 	for (iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModule();
 
-	// iterate over the second vector that contains module pointers to run after (post) the main vector
-	if (hasThreadPost)
-	{
-		for (iter = vThreadPost.begin(); iter != vThreadPost.end(); ++iter) (*iter)->runModulePost();
-	}
-	
 	if (this->slice == 0){
 		gpio_put(6, 0);
 	} 

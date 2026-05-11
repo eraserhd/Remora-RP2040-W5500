@@ -99,8 +99,6 @@ public:
     }
 
     virtual void update() override { this->makePulses(); }
-    virtual void updatePost() override {}
-    virtual void slowUpdate() override {}
 
     // Callable from another CPU, owing to DDSaddValue volatility
     void setFrequency(int32_t frequency, bool enabled)
