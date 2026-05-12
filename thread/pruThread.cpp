@@ -15,11 +15,6 @@ pruThread::pruThread(uint8_t slice, uint32_t frequency) :
 {
 	printf("Creating thread %d\n", this->frequency);
 	
-	if (this->slice == 0){
-		gpio_init(6);
-		gpio_set_dir(6, 1);
-	}
-
 	if (this->slice == 1){
 		gpio_init(27);
 		gpio_set_dir(27, 1);
@@ -62,20 +57,12 @@ void pruThread::run(void)
 	while (this->semaphore == true);	
 		this->semaphore = true;	
 	
-	if (this->slice == 0){
-		gpio_put(6, 1);
-	}
-
 	if (this->slice == 1){
 		gpio_put(27, 1);
 	}
 
 	// iterate over the Thread pointer vector to run all instances of Module::runModule()
 	for (iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModule();
-
-	if (this->slice == 0){
-		gpio_put(6, 0);
-	} 
 
 	if (this->slice == 1){
 		gpio_put(27, 0);
