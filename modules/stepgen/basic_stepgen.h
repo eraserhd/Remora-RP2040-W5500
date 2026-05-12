@@ -62,12 +62,10 @@ private:
     bool lastPulseWasForward;
     PinType* stepPin;
     PinType* directionPin;
-    RxPingPongBuffer* rxBuffer;
     TxPingPongBuffer* txBuffer;
 
 public:
     BasicStepgen(
-        RxPingPongBuffer* rxBuffer,
         TxPingPongBuffer* txBuffer,
         int32_t threadFreq,
         int jointNumber,
@@ -90,7 +88,6 @@ public:
       , lastPulseWasForward(false)
       , stepPin(new PinType(step, OUTPUT))
       , directionPin(new PinType(direction, OUTPUT))
-      , rxBuffer(rxBuffer)
       , txBuffer(txBuffer)
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;

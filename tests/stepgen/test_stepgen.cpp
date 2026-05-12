@@ -47,7 +47,6 @@ struct TestPin
 
 // --- Buffer getter stubs (declared extern in remora.h) ---
 
-rxData_t* getCurrentRxBuffer(RxPingPongBuffer* b) { return &b->rxBuffers[b->currentRxBuffer]; }
 txData_t* getCurrentTxBuffer(TxPingPongBuffer* b) { return &b->txBuffers[b->currentTxBuffer]; }
 
 using TestStepgen = BasicStepgen<TestPin>;
@@ -70,7 +69,6 @@ using Count = std::vector<int>;
 class Scenario
 {
 private:
-    RxPingPongBuffer rx;
     TxPingPongBuffer tx;
     std::vector<Sample> samples;
     int32_t threadFreq;
@@ -103,7 +101,7 @@ private:
     {
         if (!stepgen.has_value())
         {
-            stepgen.emplace(&rx, &tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
+            stepgen.emplace(&tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
             samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
         }
     }
@@ -130,8 +128,7 @@ private:
 
 public:
     Scenario()
-      : rx{}
-      , tx{}
+      : tx{}
       , threadFreq(THREAD_FREQ)
       , steplen(0)
       , stepspace(0)
@@ -140,7 +137,6 @@ public:
       , dirdelay(0)
     {
         pinState.clear();
-        rx.rxBuffers[0].jointEnable = 1;
     }
 
     Scenario& dumpSamples(int n = 45)
