@@ -95,8 +95,6 @@ public:
         maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
     }
 
-    virtual void update() override { this->makePulses(); }
-
     // Callable from another CPU, owing to DDSaddValue volatility
     void setFrequency(int32_t frequency, bool enabled)
     {
@@ -112,7 +110,7 @@ public:
         DDSaddValue = frequency * ((float)(1 << StepBit) / (float)threadFreq);
     }
 
-    void makePulses()
+    virtual void update() override
     {
         dirhold.tick();
         if (steplen.tickAndExpired())
