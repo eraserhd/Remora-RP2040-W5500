@@ -795,6 +795,15 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
             txBuffer->header = PRU_DATA;
             txlen = BUFFER_SIZE;
             comms->dataReceived();
+
+            txData_t* txData = getCurrentTxBuffer(&txPingPongBuffer);
+            for (int jointNumber = 0; jointNumber < JOINTS; ++jointNumber)
+            {
+                if (stepgens[jointNumber] != NULL)
+                {
+                    txData->jointFeedback[jointNumber] = stepgens[jointNumber]->getRawCount();
+                }
+            }
         }
         else if (rxBuffer->header == PRU_WRITE)
         {
@@ -813,11 +822,11 @@ void udp_data_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, const ip
             txlen = BUFFER_SIZE;
             comms->dataReceived();
 
-            for (int jointNumber = 0; jointNumber < JOINTS; jointNumber++)
+            rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
+            for (int jointNumber = 0; jointNumber < JOINTS; ++jointNumber)
             {
                 if (stepgens[jointNumber] != NULL)
                 {
-                    rxData_t *rxData = getCurrentRxBuffer(&rxPingPongBuffer);
                     bool isEnabled = (rxData->jointEnable & (1 << jointNumber)) != 0;
                     int32_t frequencyCommand = rxData->jointFreqCmd[jointNumber];
                     stepgens[jointNumber]->setFrequency(frequencyCommand, isEnabled);

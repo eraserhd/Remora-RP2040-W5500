@@ -47,8 +47,6 @@ struct TestPin
 
 // --- Buffer getter stubs (declared extern in remora.h) ---
 
-txData_t* getCurrentTxBuffer(TxPingPongBuffer* b) { return &b->txBuffers[b->currentTxBuffer]; }
-
 using TestStepgen = BasicStepgen<TestPin>;
 
 static const int32_t THREAD_FREQ = 40000;
@@ -69,7 +67,6 @@ using Count = std::vector<int>;
 class Scenario
 {
 private:
-    TxPingPongBuffer tx;
     std::vector<Sample> samples;
     int32_t threadFreq;
     int32_t steplen;
@@ -101,7 +98,7 @@ private:
     {
         if (!stepgen.has_value())
         {
-            stepgen.emplace(&tx, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
+            stepgen.emplace(threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
             samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
         }
     }
@@ -128,8 +125,7 @@ private:
 
 public:
     Scenario()
-      : tx{}
-      , threadFreq(THREAD_FREQ)
+      : threadFreq(THREAD_FREQ)
       , steplen(0)
       , stepspace(0)
       , dirsetup(0)
@@ -232,8 +228,8 @@ public:
 
     Scenario& hasJointFeedback(int expected)
     {
-        int actual = tx.txBuffers[0].jointFeedback[0];
-        if (expected != tx.txBuffers[0].jointFeedback[0])
+        int actual = stepgen->getRawCount();
+        if (expected != actual)
             fail("expected jointFeedback of %d, but got %d", expected, actual);
         return *this;
     }

@@ -50,7 +50,7 @@ private:
     static constexpr int StepBit = 22;
 
     int jointNumber;
-    int32_t rawCount;
+    volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;
     int32_t threadFreq;
@@ -62,11 +62,9 @@ private:
     bool lastPulseWasForward;
     PinType* stepPin;
     PinType* directionPin;
-    TxPingPongBuffer* txBuffer;
 
 public:
     BasicStepgen(
-        TxPingPongBuffer* txBuffer,
         int32_t threadFreq,
         int jointNumber,
         std::string step,
@@ -88,14 +86,14 @@ public:
       , lastPulseWasForward(false)
       , stepPin(new PinType(step, OUTPUT))
       , directionPin(new PinType(direction, OUTPUT))
-      , txBuffer(txBuffer)
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
         int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
         maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
     }
 
-    // Callable from another CPU, owing to DDSaddValue volatility
+    // Callable from core0, owing to DDSaddValue volatility and it being the only
+    // data member updated so it can't be inconsistent.
     void setFrequency(int32_t frequency, bool enabled)
     {
         if (!enabled)
@@ -108,6 +106,13 @@ public:
         else
             frequency = std::max(frequency, -maximumFrequency);
         DDSaddValue = frequency * ((float)(1 << StepBit) / (float)threadFreq);
+    }
+
+    // Callable from core0, owing to rawCount volatility and it being the only
+    // data member read so it can't be inconsistent.  Lagging a little bit is OK.
+    int32_t getRawCount() const
+    {
+        return rawCount;
     }
 
     virtual void update() override
@@ -163,9 +168,6 @@ public:
         steplen.start();
         lastPulseWasForward = isForward;
         dirdelay.start();
-
-        txData_t* txData = getCurrentTxBuffer(this->txBuffer);
-        txData->jointFeedback[this->jointNumber] = this->rawCount;
     }
 };
 

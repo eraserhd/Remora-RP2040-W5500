@@ -26,7 +26,6 @@ Stepgen *createStepgen()
 
     // create the step generator, register it in the thread
     Stepgen* stepgen = new Stepgen(
-        &txPingPongBuffer,
         base_freq, joint, step, dir, steplen, stepspace,
         dirsetup, dirhold, dirdelay
     );
