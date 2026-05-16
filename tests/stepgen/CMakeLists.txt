@@ -6,3 +6,7 @@ add_executable(test_stepgen
     test_stepgen.cpp
     ../../modules/module.cpp
 )
+
+target_include_directories(test_stepgen PRIVATE
+    ../../port
+)
