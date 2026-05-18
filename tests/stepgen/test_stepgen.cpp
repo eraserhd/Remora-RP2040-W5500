@@ -35,26 +35,22 @@ struct TestIO
 {
     struct ScheduleCall
     {
+        int      tick;
         uint32_t cycles;
-        PinType pin;
-        bool value;
+        PinType  pin;
+        bool     value;
     };
 
     std::vector<ScheduleCall> scheduleCalls;
-    bool currentStep = false;
     bool currentDir = false;
+    int  currentTick = 0;
 
     TestIO(std::string, std::string) {}
 
     void schedule(uint32_t cycles, PinType pin, bool value)
     {
-        scheduleCalls.push_back({cycles, pin, value});
-        switch (pin)
-        {
-        case PinType::StepPin:      currentStep = value; break;
-        case PinType::DirectionPin: currentDir  = value; break;
-        case PinType::NoPin:                             break;
-        }
+        scheduleCalls.push_back({currentTick, cycles, pin, value});
+        if (pin == PinType::DirectionPin) currentDir = value;
     }
 
     bool getDirection() const { return currentDir; }
@@ -71,21 +67,9 @@ static const int32_t THREAD_FREQ = 40000;
 static const char* STEP_PIN = "GP02";
 static const char* DIR_PIN  = "GP03";
 
-struct Sample
-{
-    bool step;
-    bool dir;
-    int  count;
-};
-
-using Step = std::vector<int>;
-using Dir = std::vector<int>;
-using Count = std::vector<int>;
-
 class Scenario
 {
 private:
-    std::vector<Sample> samples;
     int32_t threadFreq;
     int32_t steplen;
     int32_t stepspace;
@@ -95,41 +79,28 @@ private:
     bool initialDir;
     std::optional<TestStepgen> stepgen;
 
-    std::pair<int, int> countPulses()
-    {
-        std::pair<int, int> result;
-        bool last = false;
-        for (auto const& sample : samples)
-        {
-            if (!last && sample.step)
-            {
-                if (sample.dir)
-                    ++result.first;
-                else
-                    ++result.second;
-            }
-            last = sample.step;
-        }
-        return result;
-    }
-
     void start()
     {
         if (!stepgen.has_value())
         {
             stepgen.emplace(threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
             stepgen->io().currentDir = initialDir;
-            samples.push_back(Sample{stepgen->io().currentStep, stepgen->io().currentDir, 1});
         }
     }
 
-    void sample()
+    int countPulses(std::optional<bool> forward = {})
     {
-        auto& testIO = stepgen->io();
-        if (samples.back().step == testIO.currentStep && samples.back().dir == testIO.currentDir)
-            ++samples.back().count;
-        else
-            samples.push_back(Sample{testIO.currentStep, testIO.currentDir, 1});
+        int n = 0;
+        bool dir = initialDir;
+        for (auto const& c : stepgen->io().scheduleCalls)
+        {
+            if (c.pin == PinType::DirectionPin)
+                dir = c.value;
+            else if (c.pin == PinType::StepPin && c.value)
+                if (!forward.has_value() || *forward == dir)
+                    ++n;
+        }
+        return n;
     }
 
     void fail(const char *msg, ...)
@@ -141,7 +112,7 @@ private:
         vprintf(msg, args);
         va_end(args);
 
-        dumpSamples();
+        dumpCalls();
     }
 
 public:
@@ -156,18 +127,19 @@ public:
     {
     }
 
-    Scenario& dumpSamples(int n = 45)
+    Scenario& dumpCalls(int n = 20)
     {
-        n = std::min(n, int(samples.size()));
-        printf("\n Step:");
-        for (int i = 0; i < n; i++)
-            printf("%d ", samples[i].step);
-        printf("\n  Dir:");
-        for (int i = 0; i < n; i++)
-            printf("%d ", samples[i].dir);
-        printf("\nCount:");
-        for (int i = 0; i < n; i++)
-            printf("%d ", samples[i].count);
+        auto const& calls = stepgen->io().scheduleCalls;
+        int count = std::min(n, int(calls.size()));
+        printf("\n  Calls (%d of %d):\n", count, int(calls.size()));
+        for (int i = 0; i < count; ++i)
+        {
+            auto const& c = calls[i];
+            const char* pinName =
+                (c.pin == PinType::StepPin) ? "Step" :
+                (c.pin == PinType::DirectionPin) ? "Dir" : "NoPin";
+            printf("    tick=%d %s=%s\n", c.tick, pinName, c.value ? "true" : "false");
+        }
         return *this;
     }
 
@@ -191,8 +163,8 @@ public:
         start();
         for (int i = 0; i < threadFreq; i++)
         {
+            ++stepgen->io().currentTick;
             stepgen->update();
-            sample();
         }
         return *this;
     }
@@ -200,20 +172,19 @@ public:
     Scenario& afterPulses(int n)
     {
         start();
+        auto& testIO = stepgen->io();
         int seen = 0;
         for (int i = 0; i < threadFreq; ++i)
         {
+            size_t before = testIO.scheduleCalls.size();
+            ++testIO.currentTick;
             stepgen->update();
-            sample();
-
-            if (samples.size() < 2) continue;
-            const auto& a = samples[samples.size()-2];
-            const auto& b = samples[samples.size()-1];
-            // First sample of falling edge.
-            if (a.step && !b.step && b.count == 1)
+            for (size_t j = before; j < testIO.scheduleCalls.size(); ++j)
             {
-                if (++seen == n)
-                    return *this;
+                auto const& c = testIO.scheduleCalls[j];
+                if (c.pin == PinType::StepPin && !c.value)
+                    if (++seen == n)
+                        return *this;
             }
         }
         fail("did not receive %d pulses (saw %d)", n, seen);
@@ -222,8 +193,7 @@ public:
 
     Scenario& hasStepPulses(int expected)
     {
-        auto pulses = countPulses();
-        int actual = pulses.first + pulses.second;
+        int actual = countPulses();
         if (expected != actual)
             fail("expected %d pulses, but got %d", expected, actual);
         return *this;
@@ -231,8 +201,7 @@ public:
 
     Scenario& hasForwardStepPulses(int expected)
     {
-        auto pulses = countPulses();
-        int actual = pulses.first;
+        int actual = countPulses(true);
         if (expected != actual)
             fail("expected %d forward pulses, but got %d", expected, actual);
         return *this;
@@ -240,8 +209,7 @@ public:
 
     Scenario& hasReverseStepPulses(int expected)
     {
-        auto pulses = countPulses();
-        int actual = pulses.second;
+        int actual = countPulses(false);
         if (expected != actual)
             fail("expected %d reverse pulses, but got %d", expected, actual);
         return *this;
@@ -255,34 +223,45 @@ public:
         return *this;
     }
 
-    Scenario& madePulsesOfLength(int sampleLength)
+    Scenario& madePulsesOfLength(int length)
     {
-        int32_t n = 0;
-        int32_t length = 0;
-        for (auto const& sample : samples)
+        int n = 0;
+        int riseTick = -1;
+        for (auto const& c : stepgen->io().scheduleCalls)
         {
-            if (sample.step) length += sample.count;
-            if (length && !sample.step)
+            if (c.pin != PinType::StepPin) continue;
+            if (c.value)
             {
-                if (length != sampleLength)
+                riseTick = c.tick;
+            }
+            else if (riseTick >= 0)
+            {
+                int actualLength = c.tick - riseTick;
+                if (actualLength != length)
                 {
-                    fail("pulse %d had length %d (expected length %d).", n, length, sampleLength);
+                    fail("pulse %d had length %d (expected length %d).", n, actualLength, length);
                     return *this;
                 }
-                length = 0;
+                ++n;
+                riseTick = -1;
             }
         }
         return *this;
     }
 
-    Scenario& producesSamples(Step steps, Dir dirs, Count counts)
+    Scenario& producesCalls(std::vector<TestIO::ScheduleCall> expected)
     {
-        bool equal = true;
-        for (int i = 0; i < steps.size(); i++)
-            if (samples[i].step != bool(steps[i]) || samples[i].dir != bool(dirs[i]) || samples[i].count != counts[i])
-                equal = false;
-        if (!equal)
-            fail("produced the wrong samples");
+        auto const& actual = stepgen->io().scheduleCalls;
+        bool ok = (actual.size() == expected.size());
+        for (size_t i = 0; ok && i < expected.size(); ++i)
+        {
+            auto const& a = actual[i];
+            auto const& e = expected[i];
+            if (a.tick != e.tick || a.cycles != e.cycles || a.pin != e.pin || a.value != e.value)
+                ok = false;
+        }
+        if (!ok)
+            fail("produced the wrong calls");
         return *this;
     }
 };
@@ -346,12 +325,11 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withFrequency(25)
-        .afterRunning1Second()
-        .producesSamples(
-             Step{0,    1, 0},
-              Dir{1,    1, 1},
-            Count{1601, 2, 1598}
-        )
+        .afterPulses(1)
+        .producesCalls({
+            {1601, 0, PinType::StepPin, true},
+            {1603, 0, PinType::StepPin, false},
+        })
         .madePulsesOfLength(2)
         ;
 }
@@ -387,12 +365,12 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withStepspace(50000)
         .withDirsetup(150000)
         .withFrequency(THREAD_FREQ/2)
-        .afterRunning1Second()
-        .producesSamples(
-             Step{0,0,1,0},
-              Dir{0,1,1,1},
-            Count{1,6,2,2}
-        );
+        .afterPulses(1)
+        .producesCalls({
+            {1, 0, PinType::DirectionPin, true},
+            {7, 0, PinType::StepPin,      true},
+            {9, 0, PinType::StepPin,      false},
+        });
     Scenario()
         .withDirPin(true)
         .withThreadFrequency(40000)
@@ -400,12 +378,12 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withStepspace(50000)
         .withDirsetup(150000)
         .withFrequency(-THREAD_FREQ/2)
-        .afterRunning1Second()
-        .producesSamples(
-             Step{0,0,1,0},
-              Dir{1,0,0,0},
-            Count{1,6,2,2}
-        );
+        .afterPulses(1)
+        .producesCalls({
+            {1, 0, PinType::DirectionPin, false},
+            {7, 0, PinType::StepPin,      true},
+            {9, 0, PinType::StepPin,      false},
+        });
 }
 
 TEST(test_waits_dirhold_before_changing_direction)
@@ -420,12 +398,14 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withFrequency(-THREAD_FREQ/2)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/2)
-        .afterRunning1Second()
-        .producesSamples(
-             Step{0, 1, 0, 0, 1, 0},
-              Dir{0, 0, 0, 1, 1, 1},
-            Count{1, 2, 6, 3, 2, 2}
-        );
+        .afterPulses(1)
+        .producesCalls({
+            { 1, 0, PinType::StepPin,      true},
+            { 3, 0, PinType::StepPin,      false},
+            { 9, 0, PinType::DirectionPin, true},
+            {12, 0, PinType::StepPin,      true},
+            {14, 0, PinType::StepPin,      false},
+        });
 }
 
 TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
@@ -440,11 +420,13 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
-        .producesSamples(
-             Step{0, 1, 0, 0, 1, 0},
-              Dir{0, 0, 0, 1, 1, 1},
-            Count{1, 2, 1, 3, 2, 1}
-        );
+        .producesCalls({
+            {1, 0, PinType::StepPin,      true},
+            {3, 0, PinType::StepPin,      false},
+            {4, 0, PinType::DirectionPin, true},
+            {7, 0, PinType::StepPin,      true},
+            {9, 0, PinType::StepPin,      false},
+        });
 }
 
 int main()
