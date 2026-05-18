@@ -18,7 +18,7 @@ enum class PinType
 template<class IOType>
 class BasicStepgen
   : public Module
-  , private IOType
+  , protected IOType
 {
     struct CycleCounter
     {
