@@ -8,8 +8,17 @@
 #include "../../remora.h"
 #include "../module.h"
 
+enum class PinType
+{
+    StepPin,
+    DirectionPin,
+    NoPin
+};
+
 template<class IOType>
-class BasicStepgen : public Module
+class BasicStepgen
+  : public Module
+  , private IOType
 {
     struct CycleCounter
     {
@@ -60,8 +69,6 @@ private:
     CycleCounter dirhold;
     CycleCounter dirdelay;
     bool lastPulseWasForward;
-    IOType* stepPin;
-    IOType* directionPin;
 
 public:
     BasicStepgen(
@@ -74,7 +81,8 @@ public:
         int32_t dirsetupNs,
         int32_t dirholdNs,
         int32_t dirdelayNs
-    ) : jointNumber(jointNumber)
+    ) : IOType(step, direction)
+      , jointNumber(jointNumber)
       , rawCount(0)
       , DDSaddValue(0)
       , DDSaccumulator(0)
@@ -84,8 +92,6 @@ public:
       , dirhold(threadFreq, dirholdNs)
       , dirdelay(threadFreq, dirdelayNs)
       , lastPulseWasForward(false)
-      , stepPin(new IOType(step, OUTPUT))
-      , directionPin(new IOType(direction, OUTPUT))
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
         int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
@@ -120,7 +126,7 @@ public:
         dirhold.tick();
         if (steplen.tickAndExpired())
         {
-            this->stepPin->set(false);
+            IOType::schedule(0, PinType::StepPin, false);
             dirhold.start();
         }
         dirsetup.tick();
@@ -131,10 +137,10 @@ public:
             return;
 
         bool isForward = toAdd > 0;
-        bool needToSwitchDirections = this->directionPin->get() != isForward;
+        bool needToSwitchDirections = IOType::getDirection() != isForward;
         if (needToSwitchDirections && !dirhold.active())
         {
-            this->directionPin->set(isForward);
+            IOType::schedule(0, PinType::DirectionPin, isForward);
             dirsetup.start();
         }
 
@@ -160,7 +166,7 @@ public:
             return;
 
         DDSaccumulator = next;
-        this->stepPin->set(true);
+        IOType::schedule(0, PinType::StepPin, true);
         if (isForward)
             ++this->rawCount;
         else

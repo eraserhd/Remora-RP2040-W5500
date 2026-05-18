@@ -8,7 +8,39 @@
 
 #include "basic_stepgen.h"
 
-using Stepgen = BasicStepgen<Pin>;
+class PinIO
+{
+private:
+    Pin *stepPin;
+    Pin *dirPin;
+
+public:
+    PinIO(std::string const& step, std::string const& direction)
+        : stepPin(new Pin(step, OUTPUT))
+        , dirPin(new Pin(direction, OUTPUT))
+    {
+    }
+
+    inline void schedule(uint32_t cycles, PinType pin, bool value)
+    {
+        switch (pin)
+        {
+        case PinType::StepPin:
+            stepPin->set(value);
+            break;
+        case PinType::DirectionPin:
+            dirPin->set(value);
+            break;
+        }
+    }
+
+    inline bool getDirection(void)
+    {
+        return dirPin->get();
+    }
+};
+
+using Stepgen = BasicStepgen<PinIO>;
 
 Stepgen *createStepgen(void);
 

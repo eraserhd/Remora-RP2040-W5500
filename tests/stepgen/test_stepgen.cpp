@@ -2,7 +2,6 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstdint>
-#include <map>
 #include <optional>
 #include <string>
 #include <vector>
@@ -28,26 +27,40 @@ int failures = 0;
     } \
     void name##_impl_(void)
 
-// --- Pin stub ---
-
-std::map<std::string, bool> pinState;
-
-struct TestPin
-{
-    std::string name;
-    TestPin(std::string name, int) : name(name) {}
-    void set(bool v) { pinState[name] = v; }
-    bool get() const { return pinState.count(name) ? pinState.at(name) : false; }
-};
-
-
-#define OUTPUT 42
+// --- IO stub ---
 
 #include "../../modules/stepgen/basic_stepgen.h"
 
-// --- Buffer getter stubs (declared extern in remora.h) ---
+struct ScheduleCall
+{
+    uint32_t cycles;
+    PinType pin;
+    bool value;
+};
 
-using TestStepgen = BasicStepgen<TestPin>;
+std::vector<ScheduleCall> scheduleCalls;
+bool currentStep = false;
+bool currentDir = false;
+
+struct TestIO
+{
+    TestIO(std::string, std::string) {}
+
+    void schedule(uint32_t cycles, PinType pin, bool value)
+    {
+        scheduleCalls.push_back({cycles, pin, value});
+        switch (pin)
+        {
+        case PinType::StepPin:      currentStep = value; break;
+        case PinType::DirectionPin: currentDir  = value; break;
+        case PinType::NoPin:                             break;
+        }
+    }
+
+    bool getDirection() const { return currentDir; }
+};
+
+using TestStepgen = BasicStepgen<TestIO>;
 
 static const int32_t THREAD_FREQ = 40000;
 static const char* STEP_PIN = "GP02";
@@ -99,16 +112,16 @@ private:
         if (!stepgen.has_value())
         {
             stepgen.emplace(threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
-            samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
+            samples.push_back(Sample{currentStep, currentDir, 1});
         }
     }
 
     void sample()
     {
-        if (samples.back().step == pinState[STEP_PIN] && samples.back().dir == pinState[DIR_PIN])
+        if (samples.back().step == currentStep && samples.back().dir == currentDir)
             ++samples.back().count;
         else
-            samples.push_back(Sample{pinState[STEP_PIN], pinState[DIR_PIN], 1});
+            samples.push_back(Sample{currentStep, currentDir, 1});
     }
 
     void fail(const char *msg, ...)
@@ -132,7 +145,9 @@ public:
       , dirhold(0)
       , dirdelay(0)
     {
-        pinState.clear();
+        scheduleCalls.clear();
+        currentStep = false;
+        currentDir = false;
     }
 
     Scenario& dumpSamples(int n = 45)
@@ -156,7 +171,7 @@ public:
     Scenario& withDirsetup(int32_t value) { dirsetup = value; return *this; }
     Scenario& withDirhold(int32_t value) { dirhold = value; return *this; }
     Scenario& withDirdelay(int32_t value) { dirdelay = value; return *this; }
-    Scenario& withDirPin(bool b) { pinState[DIR_PIN] = b; return *this; }
+    Scenario& withDirPin(bool b) { currentDir = b; return *this; }
 
     Scenario& withFrequency(int32_t frequency, bool enabled = true)
     {
