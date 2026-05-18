@@ -8,7 +8,7 @@
 #include "../../remora.h"
 #include "../module.h"
 
-template<class PinType>
+template<class IOType>
 class BasicStepgen : public Module
 {
     struct CycleCounter
@@ -60,8 +60,8 @@ private:
     CycleCounter dirhold;
     CycleCounter dirdelay;
     bool lastPulseWasForward;
-    PinType* stepPin;
-    PinType* directionPin;
+    IOType* stepPin;
+    IOType* directionPin;
 
 public:
     BasicStepgen(
@@ -84,8 +84,8 @@ public:
       , dirhold(threadFreq, dirholdNs)
       , dirdelay(threadFreq, dirdelayNs)
       , lastPulseWasForward(false)
-      , stepPin(new PinType(step, OUTPUT))
-      , directionPin(new PinType(direction, OUTPUT))
+      , stepPin(new IOType(step, OUTPUT))
+      , directionPin(new IOType(direction, OUTPUT))
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
         int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
