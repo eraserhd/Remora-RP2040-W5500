@@ -5,8 +5,7 @@
 #include <optional>
 #include <string>
 #include <vector>
-#include "../../remora.h"
-
+#include "../../modules/stepgen/basic_stepgen.h"
 
 // mini test harness
 
@@ -29,27 +28,30 @@ int failures = 0;
 
 // --- IO stub ---
 
-#include "../../modules/stepgen/basic_stepgen.h"
-
 struct TestIO
 {
     struct Command
     {
-        int      tick;
         uint32_t cycles;
         PinType  pin;
         bool     value;
     };
 
     std::vector<Command> commands;
-    int currentTick = 0;
 
     TestIO(std::string, std::string) {}
 
     void schedule(uint32_t cycles, PinType pin, bool value)
     {
-        commands.push_back({currentTick, cycles, pin, value});
+        commands.push_back({cycles, pin, value});
     }
+};
+
+struct ExpectedCommand
+{
+    int tick;
+    PinType pin;
+    bool value;
 };
 
 class TestStepgen : public BasicStepgen<TestIO>
@@ -63,9 +65,12 @@ static const int32_t THREAD_FREQ = 40000;
 static const char* STEP_PIN = "GP02";
 static const char* DIR_PIN  = "GP03";
 
+static const int32_t CPU_FREQ = 125000000;
+
 class Scenario
 {
 private:
+    int32_t cpuFreq;
     int32_t threadFreq;
     int32_t steplen;
     int32_t stepspace;
@@ -74,10 +79,12 @@ private:
     int32_t dirdelay;
     std::optional<TestStepgen> stepgen;
 
+    uint32_t cyclesPerTick() const { return cpuFreq / threadFreq; }
+
     void start()
     {
         if (!stepgen.has_value())
-            stepgen.emplace(threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
+            stepgen.emplace(cpuFreq, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
     }
 
     int countPulses(std::optional<bool> forward = {})
@@ -109,7 +116,8 @@ private:
 
 public:
     Scenario()
-      : threadFreq(THREAD_FREQ)
+      : cpuFreq(CPU_FREQ)
+      , threadFreq(THREAD_FREQ)
       , steplen(0)
       , stepspace(0)
       , dirsetup(0)
@@ -122,6 +130,7 @@ public:
     {
         auto const& calls = stepgen->io().commands;
         int count = std::min(n, int(calls.size()));
+        uint32_t cpt = cyclesPerTick();
         printf("\n  Calls (%d of %d):\n", count, int(calls.size()));
         for (int i = 0; i < count; ++i)
         {
@@ -129,7 +138,8 @@ public:
             const char* pinName =
                 (c.pin == PinType::StepPin) ? "Step" :
                 (c.pin == PinType::DirectionPin) ? "Dir" : "NoPin";
-            printf("    tick=%d %s=%s\n", c.tick, pinName, c.value ? "true" : "false");
+            printf("    tick=%d (cycles=%u) %s=%s\n",
+                int(c.cycles / cpt), c.cycles, pinName, c.value ? "true" : "false");
         }
         return *this;
     }
@@ -152,10 +162,7 @@ public:
     {
         start();
         for (int i = 0; i < threadFreq; i++)
-        {
-            ++stepgen->io().currentTick;
             stepgen->update();
-        }
         return *this;
     }
 
@@ -167,7 +174,6 @@ public:
         for (int i = 0; i < threadFreq; ++i)
         {
             size_t before = testIO.commands.size();
-            ++testIO.currentTick;
             stepgen->update();
             for (size_t j = before; j < testIO.commands.size(); ++j)
             {
@@ -217,16 +223,18 @@ public:
     {
         int n = 0;
         int riseTick = -1;
+        uint32_t cpt = cyclesPerTick();
         for (auto const& c : stepgen->io().commands)
         {
             if (c.pin != PinType::StepPin) continue;
+            int tick = int(c.cycles / cpt);
             if (c.value)
             {
-                riseTick = c.tick;
+                riseTick = tick;
             }
             else if (riseTick >= 0)
             {
-                int actualLength = c.tick - riseTick;
+                int actualLength = tick - riseTick;
                 if (actualLength != length)
                 {
                     fail("pulse %d had length %d (expected length %d).", n, actualLength, length);
@@ -239,15 +247,16 @@ public:
         return *this;
     }
 
-    Scenario& sentCommands(std::vector<TestIO::Command> expected)
+    Scenario& sentCommands(std::vector<ExpectedCommand> expected)
     {
         auto const& actual = stepgen->io().commands;
+        uint32_t cpt = cyclesPerTick();
         bool ok = (actual.size() == expected.size());
         for (size_t i = 0; ok && i < expected.size(); ++i)
         {
             auto const& a = actual[i];
             auto const& e = expected[i];
-            if (a.tick != e.tick || a.cycles != e.cycles || a.pin != e.pin || a.value != e.value)
+            if (a.cycles != uint32_t(e.tick) * cpt || a.pin != e.pin || a.value != e.value)
                 ok = false;
         }
         if (!ok)
@@ -313,10 +322,10 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withFrequency(25)
         .afterPulses(1)
         .sentCommands({
-            {   0, 0, PinType::DirectionPin, false},
-            {   1, 0, PinType::DirectionPin, true},
-            {1601, 0, PinType::StepPin,      true},
-            {1603, 0, PinType::StepPin,      false},
+            {   0, PinType::DirectionPin, false},
+            {   1, PinType::DirectionPin, true},
+            {1601, PinType::StepPin,      true},
+            {1603, PinType::StepPin,      false},
         })
         .madePulsesOfLength(2)
         ;
@@ -352,10 +361,10 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .sentCommands({
-            {0, 0, PinType::DirectionPin, false},
-            {1, 0, PinType::DirectionPin, true},
-            {7, 0, PinType::StepPin,      true},
-            {9, 0, PinType::StepPin,      false},
+            {0, PinType::DirectionPin, false},
+            {1, PinType::DirectionPin, true},
+            {7, PinType::StepPin,      true},
+            {9, PinType::StepPin,      false},
         });
 }
 
@@ -372,12 +381,12 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .sentCommands({
-            { 0, 0, PinType::DirectionPin, false},
-            { 1, 0, PinType::StepPin,      true},
-            { 3, 0, PinType::StepPin,      false},
-            { 9, 0, PinType::DirectionPin, true},
-            {12, 0, PinType::StepPin,      true},
-            {14, 0, PinType::StepPin,      false},
+            { 0, PinType::DirectionPin, false},
+            { 1, PinType::StepPin,      true},
+            { 3, PinType::StepPin,      false},
+            { 9, PinType::DirectionPin, true},
+            {12, PinType::StepPin,      true},
+            {14, PinType::StepPin,      false},
         });
 }
 
@@ -393,12 +402,12 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .sentCommands({
-            {0, 0, PinType::DirectionPin, false},
-            {1, 0, PinType::StepPin,      true},
-            {3, 0, PinType::StepPin,      false},
-            {4, 0, PinType::DirectionPin, true},
-            {7, 0, PinType::StepPin,      true},
-            {9, 0, PinType::StepPin,      false},
+            {0, PinType::DirectionPin, false},
+            {1, PinType::StepPin,      true},
+            {3, PinType::StepPin,      false},
+            {4, PinType::DirectionPin, true},
+            {7, PinType::StepPin,      true},
+            {9, PinType::StepPin,      false},
         });
 }
 
