@@ -33,7 +33,7 @@ int failures = 0;
 
 struct TestIO
 {
-    struct ScheduleCall
+    struct Command
     {
         int      tick;
         uint32_t cycles;
@@ -41,14 +41,14 @@ struct TestIO
         bool     value;
     };
 
-    std::vector<ScheduleCall> scheduleCalls;
+    std::vector<Command> commands;
     int currentTick = 0;
 
     TestIO(std::string, std::string) {}
 
     void schedule(uint32_t cycles, PinType pin, bool value)
     {
-        scheduleCalls.push_back({currentTick, cycles, pin, value});
+        commands.push_back({currentTick, cycles, pin, value});
     }
 };
 
@@ -84,7 +84,7 @@ private:
     {
         int n = 0;
         bool dir = false;
-        for (auto const& c : stepgen->io().scheduleCalls)
+        for (auto const& c : stepgen->io().commands)
         {
             if (c.pin == PinType::DirectionPin)
                 dir = c.value;
@@ -120,7 +120,7 @@ public:
 
     Scenario& dumpCalls(int n = 20)
     {
-        auto const& calls = stepgen->io().scheduleCalls;
+        auto const& calls = stepgen->io().commands;
         int count = std::min(n, int(calls.size()));
         printf("\n  Calls (%d of %d):\n", count, int(calls.size()));
         for (int i = 0; i < count; ++i)
@@ -166,12 +166,12 @@ public:
         int seen = 0;
         for (int i = 0; i < threadFreq; ++i)
         {
-            size_t before = testIO.scheduleCalls.size();
+            size_t before = testIO.commands.size();
             ++testIO.currentTick;
             stepgen->update();
-            for (size_t j = before; j < testIO.scheduleCalls.size(); ++j)
+            for (size_t j = before; j < testIO.commands.size(); ++j)
             {
-                auto const& c = testIO.scheduleCalls[j];
+                auto const& c = testIO.commands[j];
                 if (c.pin == PinType::StepPin && !c.value)
                     if (++seen == n)
                         return *this;
@@ -217,7 +217,7 @@ public:
     {
         int n = 0;
         int riseTick = -1;
-        for (auto const& c : stepgen->io().scheduleCalls)
+        for (auto const& c : stepgen->io().commands)
         {
             if (c.pin != PinType::StepPin) continue;
             if (c.value)
@@ -239,9 +239,9 @@ public:
         return *this;
     }
 
-    Scenario& producesCalls(std::vector<TestIO::ScheduleCall> expected)
+    Scenario& sentCommands(std::vector<TestIO::Command> expected)
     {
-        auto const& actual = stepgen->io().scheduleCalls;
+        auto const& actual = stepgen->io().commands;
         bool ok = (actual.size() == expected.size());
         for (size_t i = 0; ok && i < expected.size(); ++i)
         {
@@ -312,7 +312,7 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withSteplen(50000)
         .withFrequency(25)
         .afterPulses(1)
-        .producesCalls({
+        .sentCommands({
             {   0, 0, PinType::DirectionPin, false},
             {   1, 0, PinType::DirectionPin, true},
             {1601, 0, PinType::StepPin,      true},
@@ -351,7 +351,7 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withDirsetup(150000)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
-        .producesCalls({
+        .sentCommands({
             {0, 0, PinType::DirectionPin, false},
             {1, 0, PinType::DirectionPin, true},
             {7, 0, PinType::StepPin,      true},
@@ -371,7 +371,7 @@ TEST(test_waits_dirhold_before_changing_direction)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
-        .producesCalls({
+        .sentCommands({
             { 0, 0, PinType::DirectionPin, false},
             { 1, 0, PinType::StepPin,      true},
             { 3, 0, PinType::StepPin,      false},
@@ -392,7 +392,7 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
-        .producesCalls({
+        .sentCommands({
             {0, 0, PinType::DirectionPin, false},
             {1, 0, PinType::StepPin,      true},
             {3, 0, PinType::StepPin,      false},
