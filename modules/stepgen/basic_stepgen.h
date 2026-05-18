@@ -63,6 +63,7 @@ private:
     volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;
     int32_t threadFreq;
+    uint32_t cyclesPerTick;
     CycleCounter steplen;
     int32_t maximumFrequency;
     CycleCounter dirsetup;
@@ -73,6 +74,7 @@ private:
 
 public:
     BasicStepgen(
+        int32_t cpuFreq,
         int32_t threadFreq,
         int jointNumber,
         std::string step,
@@ -88,6 +90,7 @@ public:
       , DDSaddValue(0)
       , DDSaccumulator(0)
       , threadFreq(threadFreq)
+      , cyclesPerTick(cpuFreq / threadFreq)
       , steplen(threadFreq, steplenNs)
       , dirsetup(threadFreq, dirsetupNs)
       , dirhold(threadFreq, dirholdNs)
@@ -100,6 +103,7 @@ public:
         maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
 
         IOType::schedule(0, PinType::DirectionPin, currentDirection);
+        IOType::schedule(cyclesPerTick, PinType::NoPin, false);
     }
 
     // Callable from core0, owing to DDSaddValue volatility and it being the only
@@ -131,6 +135,7 @@ public:
         if (steplen.tickAndExpired())
         {
             IOType::schedule(0, PinType::StepPin, false);
+            IOType::schedule(cyclesPerTick, PinType::NoPin, false);
             dirhold.start();
         }
         dirsetup.tick();
@@ -145,6 +150,7 @@ public:
         if (needToSwitchDirections && !dirhold.active())
         {
             IOType::schedule(0, PinType::DirectionPin, isForward);
+            IOType::schedule(cyclesPerTick, PinType::NoPin, false);
             currentDirection = isForward;
             dirsetup.start();
         }
@@ -172,6 +178,7 @@ public:
 
         DDSaccumulator = next;
         IOType::schedule(0, PinType::StepPin, true);
+        IOType::schedule(cyclesPerTick, PinType::NoPin, false);
         if (isForward)
             ++this->rawCount;
         else
