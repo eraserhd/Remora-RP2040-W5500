@@ -103,7 +103,6 @@ public:
         maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
 
         IOType::schedule(0, PinType::DirectionPin, currentDirection);
-        IOType::schedule(cyclesPerTick, PinType::NoPin, false);
     }
 
     // Callable from core0, owing to DDSaddValue volatility and it being the only
@@ -131,11 +130,17 @@ public:
 
     virtual void update() override
     {
+        changePins();
+        IOType::schedule(cyclesPerTick, PinType::NoPin, false);
+    }
+
+private:
+    void changePins()
+    {
         dirhold.tick();
         if (steplen.tickAndExpired())
         {
             IOType::schedule(0, PinType::StepPin, false);
-            IOType::schedule(cyclesPerTick, PinType::NoPin, false);
             dirhold.start();
         }
         dirsetup.tick();
@@ -150,7 +155,6 @@ public:
         if (needToSwitchDirections && !dirhold.active())
         {
             IOType::schedule(0, PinType::DirectionPin, isForward);
-            IOType::schedule(cyclesPerTick, PinType::NoPin, false);
             currentDirection = isForward;
             dirsetup.start();
         }
@@ -178,7 +182,6 @@ public:
 
         DDSaccumulator = next;
         IOType::schedule(0, PinType::StepPin, true);
-        IOType::schedule(cyclesPerTick, PinType::NoPin, false);
         if (isForward)
             ++this->rawCount;
         else

@@ -80,12 +80,25 @@ private:
     int32_t dirsetup;
     int32_t dirhold;
     int32_t dirdelay;
+    bool reportedScheduleFailure;
     std::optional<TestStepgen> stepgen;
 
     void start()
     {
         if (!stepgen.has_value())
             stepgen.emplace(cpuFreq, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
+    }
+
+    void callUpdate()
+    {
+        auto& testIO = stepgen->io();
+        size_t before = testIO.commands.size();
+        stepgen->update();
+        if (testIO.commands.size() == before && !reportedScheduleFailure)
+        {
+            reportedScheduleFailure = true;
+            fail("update() emitted no commands (always-schedule invariant violated)");
+        }
     }
 
     int countPulses(std::optional<bool> forward = {})
@@ -124,6 +137,7 @@ public:
       , dirsetup(0)
       , dirhold(0)
       , dirdelay(0)
+      , reportedScheduleFailure(false)
     {
     }
 
@@ -162,7 +176,7 @@ public:
     {
         start();
         for (int i = 0; i < threadFreq; i++)
-            stepgen->update();
+            callUpdate();
         return *this;
     }
 
@@ -174,7 +188,7 @@ public:
         for (int i = 0; i < threadFreq; ++i)
         {
             size_t before = testIO.commands.size();
-            stepgen->update();
+            callUpdate();
             for (size_t j = before; j < testIO.commands.size(); ++j)
             {
                 auto const& c = testIO.commands[j];
@@ -324,12 +338,12 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withFrequency(25)
         .afterPulses(1)
         .sentCommands({
-            {0,                   PinType::DirectionPin, false},
-            {1 * CYCLES_PER_TICK, PinType::DirectionPin, true},
-            {2 * CYCLES_PER_TICK, PinType::StepPin,      true},
-            {3 * CYCLES_PER_TICK, PinType::StepPin,      false},
+            {0,                      PinType::DirectionPin, false},
+            {0,                      PinType::DirectionPin, true},
+            {1600 * CYCLES_PER_TICK, PinType::StepPin,      true},
+            {1602 * CYCLES_PER_TICK, PinType::StepPin,      false},
         })
-        .madePulsesOfLength(CYCLES_PER_TICK)
+        .madePulsesOfLength(2 * CYCLES_PER_TICK)
         ;
 }
 
@@ -364,9 +378,9 @@ TEST(test_waits_dirsetup_before_pulsing)
         .afterPulses(1)
         .sentCommands({
             {0,                   PinType::DirectionPin, false},
-            {1 * CYCLES_PER_TICK, PinType::DirectionPin, true},
-            {2 * CYCLES_PER_TICK, PinType::StepPin,      true},
-            {3 * CYCLES_PER_TICK, PinType::StepPin,      false},
+            {0,                   PinType::DirectionPin, true},
+            {6 * CYCLES_PER_TICK, PinType::StepPin,      true},
+            {8 * CYCLES_PER_TICK, PinType::StepPin,      false},
         });
 }
 
@@ -383,12 +397,12 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .sentCommands({
-            {0,                   PinType::DirectionPin, false},
-            {1 * CYCLES_PER_TICK, PinType::StepPin,      true},
-            {2 * CYCLES_PER_TICK, PinType::StepPin,      false},
-            {3 * CYCLES_PER_TICK, PinType::DirectionPin, true},
-            {4 * CYCLES_PER_TICK, PinType::StepPin,      true},
-            {5 * CYCLES_PER_TICK, PinType::StepPin,      false},
+            { 0,                    PinType::DirectionPin, false},
+            { 0,                    PinType::StepPin,      true},
+            { 2 * CYCLES_PER_TICK,  PinType::StepPin,      false},
+            { 8 * CYCLES_PER_TICK,  PinType::DirectionPin, true},
+            {11 * CYCLES_PER_TICK,  PinType::StepPin,      true},
+            {13 * CYCLES_PER_TICK,  PinType::StepPin,      false},
         });
 }
 
@@ -405,11 +419,11 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .afterPulses(1)
         .sentCommands({
             {0,                   PinType::DirectionPin, false},
-            {1 * CYCLES_PER_TICK, PinType::StepPin,      true},
+            {0,                   PinType::StepPin,      true},
             {2 * CYCLES_PER_TICK, PinType::StepPin,      false},
             {3 * CYCLES_PER_TICK, PinType::DirectionPin, true},
-            {4 * CYCLES_PER_TICK, PinType::StepPin,      true},
-            {5 * CYCLES_PER_TICK, PinType::StepPin,      false},
+            {6 * CYCLES_PER_TICK, PinType::StepPin,      true},
+            {8 * CYCLES_PER_TICK, PinType::StepPin,      false},
         });
 }
 
