@@ -69,6 +69,7 @@ private:
     CycleCounter dirhold;
     CycleCounter dirdelay;
     bool lastPulseWasForward;
+    bool currentDirection;
 
 public:
     BasicStepgen(
@@ -92,10 +93,13 @@ public:
       , dirhold(threadFreq, dirholdNs)
       , dirdelay(threadFreq, dirdelayNs)
       , lastPulseWasForward(false)
+      , currentDirection(false)
     {
         float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
         int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
         maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
+
+        IOType::schedule(0, PinType::DirectionPin, currentDirection);
     }
 
     // Callable from core0, owing to DDSaddValue volatility and it being the only
@@ -137,10 +141,11 @@ public:
             return;
 
         bool isForward = toAdd > 0;
-        bool needToSwitchDirections = IOType::getDirection() != isForward;
+        bool needToSwitchDirections = currentDirection != isForward;
         if (needToSwitchDirections && !dirhold.active())
         {
             IOType::schedule(0, PinType::DirectionPin, isForward);
+            currentDirection = isForward;
             dirsetup.start();
         }
 

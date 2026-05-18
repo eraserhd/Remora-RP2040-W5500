@@ -42,18 +42,14 @@ struct TestIO
     };
 
     std::vector<ScheduleCall> scheduleCalls;
-    bool currentDir = false;
-    int  currentTick = 0;
+    int currentTick = 0;
 
     TestIO(std::string, std::string) {}
 
     void schedule(uint32_t cycles, PinType pin, bool value)
     {
         scheduleCalls.push_back({currentTick, cycles, pin, value});
-        if (pin == PinType::DirectionPin) currentDir = value;
     }
-
-    bool getDirection() const { return currentDir; }
 };
 
 class TestStepgen : public BasicStepgen<TestIO>
@@ -76,22 +72,18 @@ private:
     int32_t dirsetup;
     int32_t dirhold;
     int32_t dirdelay;
-    bool initialDir;
     std::optional<TestStepgen> stepgen;
 
     void start()
     {
         if (!stepgen.has_value())
-        {
             stepgen.emplace(threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
-            stepgen->io().currentDir = initialDir;
-        }
     }
 
     int countPulses(std::optional<bool> forward = {})
     {
         int n = 0;
-        bool dir = initialDir;
+        bool dir = false;
         for (auto const& c : stepgen->io().scheduleCalls)
         {
             if (c.pin == PinType::DirectionPin)
@@ -123,7 +115,6 @@ public:
       , dirsetup(0)
       , dirhold(0)
       , dirdelay(0)
-      , initialDir(false)
     {
     }
 
@@ -149,7 +140,6 @@ public:
     Scenario& withDirsetup(int32_t value) { dirsetup = value; return *this; }
     Scenario& withDirhold(int32_t value) { dirhold = value; return *this; }
     Scenario& withDirdelay(int32_t value) { dirdelay = value; return *this; }
-    Scenario& withDirPin(bool b) { initialDir = b; return *this; }
 
     Scenario& withFrequency(int32_t frequency, bool enabled = true)
     {
@@ -289,7 +279,6 @@ TEST(test_zero_frequency_does_not_step)
 TEST(test_half_rate_steps_every_two_updates)
 {
     Scenario()
-        .withDirPin(true)
         .withFrequency(THREAD_FREQ / 2, true)
         .afterRunning1Second()
         .hasStepPulses(THREAD_FREQ / 2)
@@ -299,7 +288,6 @@ TEST(test_half_rate_steps_every_two_updates)
 TEST(test_forward_direction_and_count)
 {
     Scenario()
-        .withDirPin(true)
         .withFrequency(THREAD_FREQ / 2, true)
         .afterRunning1Second()
         .hasForwardStepPulses(THREAD_FREQ / 2)
@@ -310,7 +298,6 @@ TEST(test_forward_direction_and_count)
 TEST(test_reverse_direction_and_count)
 {
     Scenario()
-        .withDirPin(false)
         .withFrequency(-THREAD_FREQ / 2, true)
         .afterRunning1Second()
         .hasReverseStepPulses(THREAD_FREQ / 2)
@@ -321,14 +308,15 @@ TEST(test_reverse_direction_and_count)
 TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
 {
     Scenario()
-        .withDirPin(true)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withFrequency(25)
         .afterPulses(1)
         .producesCalls({
-            {1601, 0, PinType::StepPin, true},
-            {1603, 0, PinType::StepPin, false},
+            {   0, 0, PinType::DirectionPin, false},
+            {   1, 0, PinType::DirectionPin, true},
+            {1601, 0, PinType::StepPin,      true},
+            {1603, 0, PinType::StepPin,      false},
         })
         .madePulsesOfLength(2)
         ;
@@ -337,7 +325,6 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
 TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
 {
     Scenario()
-        .withDirPin(true)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
@@ -346,7 +333,6 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
         .hasStepPulses(10000)
         ;
     Scenario()
-        .withDirPin(false)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
@@ -359,7 +345,6 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
 TEST(test_waits_dirsetup_before_pulsing)
 {
     Scenario()
-        .withDirPin(false)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
@@ -367,20 +352,8 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .producesCalls({
+            {0, 0, PinType::DirectionPin, false},
             {1, 0, PinType::DirectionPin, true},
-            {7, 0, PinType::StepPin,      true},
-            {9, 0, PinType::StepPin,      false},
-        });
-    Scenario()
-        .withDirPin(true)
-        .withThreadFrequency(40000)
-        .withSteplen(50000)
-        .withStepspace(50000)
-        .withDirsetup(150000)
-        .withFrequency(-THREAD_FREQ/2)
-        .afterPulses(1)
-        .producesCalls({
-            {1, 0, PinType::DirectionPin, false},
             {7, 0, PinType::StepPin,      true},
             {9, 0, PinType::StepPin,      false},
         });
@@ -389,7 +362,6 @@ TEST(test_waits_dirsetup_before_pulsing)
 TEST(test_waits_dirhold_before_changing_direction)
 {
     Scenario()
-        .withDirPin(false)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
@@ -400,6 +372,7 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .producesCalls({
+            { 0, 0, PinType::DirectionPin, false},
             { 1, 0, PinType::StepPin,      true},
             { 3, 0, PinType::StepPin,      false},
             { 9, 0, PinType::DirectionPin, true},
@@ -411,7 +384,6 @@ TEST(test_waits_dirhold_before_changing_direction)
 TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
 {
     Scenario()
-        .withDirPin(false)
         .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
@@ -421,6 +393,7 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .withFrequency(THREAD_FREQ/2)
         .afterPulses(1)
         .producesCalls({
+            {0, 0, PinType::DirectionPin, false},
             {1, 0, PinType::StepPin,      true},
             {3, 0, PinType::StepPin,      false},
             {4, 0, PinType::DirectionPin, true},

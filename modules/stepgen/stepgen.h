@@ -33,11 +33,6 @@ public:
             break;
         }
     }
-
-    inline bool getDirection(void)
-    {
-        return dirPin->get();
-    }
 };
 
 using Stepgen = BasicStepgen<PinIO>;
