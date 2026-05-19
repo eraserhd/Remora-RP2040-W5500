@@ -66,7 +66,7 @@ public:
     }
 };
 
-using Stepgen = BasicStepgen<PLL_SYS_KHZ * 1000, PRU_BASEFREQ, PinIO>;
+using Stepgen = BasicStepgen<PLL_SYS_KHZ * 1000, PRU_BASEFREQ, PIOIO>;
 
 Stepgen *createStepgen(void);
 
