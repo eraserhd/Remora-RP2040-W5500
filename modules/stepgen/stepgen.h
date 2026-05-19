@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "../extern.h"
+#include "../../configuration.h"
 #include "../../drivers/pin/pin.h"
 
 #include "basic_stepgen.h"
@@ -35,7 +36,7 @@ public:
     }
 };
 
-using Stepgen = BasicStepgen<PinIO>;
+using Stepgen = BasicStepgen<PLL_SYS_KHZ * 1000, PRU_BASEFREQ, PinIO>;
 
 Stepgen *createStepgen(void);
 

@@ -15,20 +15,27 @@ enum class PinType
     NoPin
 };
 
-template<class IOType>
+template<
+    int32_t CpuFreq
+  , int32_t ThreadFreq
+  , class IOType
+>
 class BasicStepgen
   : public Module
   , protected IOType
 {
+    static_assert(CpuFreq % ThreadFreq == 0, "CpuFreq must be an integer multiple of ThreadFreq");
+    static constexpr uint32_t cyclesPerTick = CpuFreq / ThreadFreq;
+
     struct CycleCounter
     {
         int32_t remaining;
         int32_t cycles;
 
-        inline CycleCounter(int32_t threadFreq, int32_t ns)
+        inline CycleCounter(int32_t ns)
             : remaining(0)
         {
-            float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
+            float nsPerCycle = 1.0 / float(ThreadFreq) * 1000000000.0;
             cycles = ns ? ceil(ns / nsPerCycle) : 1;
         }
 
@@ -62,8 +69,6 @@ private:
     volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;
-    int32_t threadFreq;
-    uint32_t cyclesPerTick;
     CycleCounter steplen;
     int32_t maximumFrequency;
     CycleCounter dirsetup;
@@ -74,8 +79,6 @@ private:
 
 public:
     BasicStepgen(
-        int32_t cpuFreq,
-        int32_t threadFreq,
         int jointNumber,
         std::string step,
         std::string direction,
@@ -89,18 +92,16 @@ public:
       , rawCount(0)
       , DDSaddValue(0)
       , DDSaccumulator(0)
-      , threadFreq(threadFreq)
-      , cyclesPerTick(cpuFreq / threadFreq)
-      , steplen(threadFreq, steplenNs)
-      , dirsetup(threadFreq, dirsetupNs)
-      , dirhold(threadFreq, dirholdNs)
-      , dirdelay(threadFreq, dirdelayNs)
+      , steplen(steplenNs)
+      , dirsetup(dirsetupNs)
+      , dirhold(dirholdNs)
+      , dirdelay(dirdelayNs)
       , lastPulseWasForward(false)
       , currentDirection(false)
     {
-        float nsPerCycle = 1.0 / float(threadFreq) * 1000000000.0;
+        float nsPerCycle = 1.0 / float(ThreadFreq) * 1000000000.0;
         int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
-        maximumFrequency = threadFreq / (steplen.cycles + stepspaceInCycles);
+        maximumFrequency = ThreadFreq / (steplen.cycles + stepspaceInCycles);
 
         IOType::schedule(0, PinType::DirectionPin, currentDirection);
     }
@@ -118,7 +119,7 @@ public:
             frequency = std::min(frequency, maximumFrequency);
         else
             frequency = std::max(frequency, -maximumFrequency);
-        DDSaddValue = frequency * ((float)(1 << StepBit) / (float)threadFreq);
+        DDSaddValue = frequency * ((float)(1 << StepBit) / (float)ThreadFreq);
     }
 
     // Callable from core0, owing to rawCount volatility and it being the only

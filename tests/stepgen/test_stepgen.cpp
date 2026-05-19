@@ -56,13 +56,6 @@ struct ExpectedCommand
     bool value;
 };
 
-class TestStepgen : public BasicStepgen<TestIO>
-{
-public:
-    using BasicStepgen::BasicStepgen;
-    TestIO& io() { return *this; }
-};
-
 static const int32_t THREAD_FREQ = 40000;
 static const char* STEP_PIN = "GP02";
 static const char* DIR_PIN  = "GP03";
@@ -70,11 +63,16 @@ static const char* DIR_PIN  = "GP03";
 static const int32_t CPU_FREQ = 125000000;
 static const uint32_t CYCLES_PER_TICK = CPU_FREQ / THREAD_FREQ;
 
+class TestStepgen : public BasicStepgen<CPU_FREQ, THREAD_FREQ, TestIO>
+{
+public:
+    using BasicStepgen::BasicStepgen;
+    TestIO& io() { return *this; }
+};
+
 class Scenario
 {
 private:
-    int32_t cpuFreq;
-    int32_t threadFreq;
     int32_t steplen;
     int32_t stepspace;
     int32_t dirsetup;
@@ -86,7 +84,7 @@ private:
     void start()
     {
         if (!stepgen.has_value())
-            stepgen.emplace(cpuFreq, threadFreq, 0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
+            stepgen.emplace(0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
     }
 
     void callUpdate()
@@ -130,9 +128,7 @@ private:
 
 public:
     Scenario()
-      : cpuFreq(CPU_FREQ)
-      , threadFreq(THREAD_FREQ)
-      , steplen(0)
+      : steplen(0)
       , stepspace(0)
       , dirsetup(0)
       , dirhold(0)
@@ -158,7 +154,6 @@ public:
         return *this;
     }
 
-    Scenario& withThreadFrequency(int32_t value) { threadFreq = value; return *this; }
     Scenario& withSteplen(int32_t value) { steplen = value; return *this; }
     Scenario& withStepspace(int32_t value) { stepspace = value; return *this; }
     Scenario& withDirsetup(int32_t value) { dirsetup = value; return *this; }
@@ -175,7 +170,7 @@ public:
     Scenario& afterRunning1Second()
     {
         start();
-        for (int i = 0; i < threadFreq; i++)
+        for (int i = 0; i < THREAD_FREQ; i++)
             callUpdate();
         return *this;
     }
@@ -185,7 +180,7 @@ public:
         start();
         auto& testIO = stepgen->io();
         int seen = 0;
-        for (int i = 0; i < threadFreq; ++i)
+        for (int i = 0; i < THREAD_FREQ; ++i)
         {
             size_t before = testIO.commands.size();
             callUpdate();
@@ -333,7 +328,6 @@ TEST(test_reverse_direction_and_count)
 TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
 {
     Scenario()
-        .withThreadFrequency(40000)
         .withSteplen(50000)
         .withFrequency(25)
         .afterPulses(1)
@@ -350,7 +344,6 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
 TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
 {
     Scenario()
-        .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
         .withFrequency(THREAD_FREQ, true)
@@ -358,7 +351,6 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
         .hasStepPulses(10000)
         ;
     Scenario()
-        .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
         .withFrequency(-THREAD_FREQ, true)
@@ -370,7 +362,6 @@ TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
 TEST(test_waits_dirsetup_before_pulsing)
 {
     Scenario()
-        .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirsetup(150000)
@@ -387,7 +378,6 @@ TEST(test_waits_dirsetup_before_pulsing)
 TEST(test_waits_dirhold_before_changing_direction)
 {
     Scenario()
-        .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirsetup(75000)
@@ -409,7 +399,6 @@ TEST(test_waits_dirhold_before_changing_direction)
 TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
 {
     Scenario()
-        .withThreadFrequency(40000)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirdelay(150000)

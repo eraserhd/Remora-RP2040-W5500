@@ -1,5 +1,4 @@
 #include "stepgen.h"
-#include "../../configuration.h"
 
 /***********************************************************************
                 MODULE CONFIGURATION AND CREATION FROM JSON     
@@ -27,7 +26,7 @@ Stepgen *createStepgen()
 
     // create the step generator, register it in the thread
     Stepgen* stepgen = new Stepgen(
-        PLL_SYS_KHZ * 1000, base_freq, joint, step, dir, steplen, stepspace,
+        joint, step, dir, steplen, stepspace,
         dirsetup, dirhold, dirdelay
     );
     baseThread->registerModule(stepgen);
