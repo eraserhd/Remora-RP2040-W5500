@@ -8,7 +8,6 @@
 #include "thread/pruThread.h"
 
 
-extern uint32_t base_freq;
 extern uint32_t servo_freq;
 
 extern JsonObject module;

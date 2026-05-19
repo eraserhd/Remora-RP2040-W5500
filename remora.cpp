@@ -105,7 +105,6 @@ enum State {
 };
 
 uint8_t resetCnt;
-uint32_t base_freq = PRU_BASEFREQ;
 uint32_t servo_freq = PRU_SERVOFREQ;
 
 // boolean
@@ -338,12 +337,7 @@ void configThreads()
         const char* configor = thread["Thread"];
         uint32_t    freq = thread["Frequency"];
 
-        if (!strcmp(configor,"Base"))
-        {
-            base_freq = freq;
-            printf("Setting BASE thread frequency to %d\n", base_freq);
-        }
-        else if (!strcmp(configor,"Servo"))
+        if (!strcmp(configor,"Servo"))
         {
             servo_freq = freq;
             printf("Setting SERVO thread frequency to %d\n", servo_freq);
