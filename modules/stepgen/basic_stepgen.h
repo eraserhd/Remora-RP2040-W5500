@@ -27,38 +27,45 @@ class BasicStepgen
     static_assert(CpuFreq % ThreadFreq == 0, "CpuFreq must be an integer multiple of ThreadFreq");
     static constexpr uint32_t cyclesPerTick = CpuFreq / ThreadFreq;
 
+    static constexpr uint32_t nsToCycles(int32_t ns)
+    {
+        return ns > 0
+            ? uint32_t((uint64_t(ns) * uint64_t(CpuFreq) + 999999999ULL) / 1000000000ULL)
+            : cyclesPerTick;
+    }
+
     struct CycleCounter
     {
-        int32_t remaining;
-        int32_t cycles;
+        uint32_t durationCycles;
+        uint32_t expiryCycle;
+        bool armed;
 
         inline CycleCounter(int32_t ns)
-            : remaining(0)
+            : durationCycles(nsToCycles(ns))
+            , expiryCycle(0)
+            , armed(false)
         {
-            float nsPerCycle = 1.0 / float(ThreadFreq) * 1000000000.0;
-            cycles = ns ? ceil(ns / nsPerCycle) : 1;
         }
 
-        inline void start()
+        inline void start(uint32_t now)
         {
-            remaining = cycles;
+            expiryCycle = now + durationCycles;
+            armed = true;
         }
 
-        inline bool active() const
+        inline bool active(uint32_t now) const
         {
-            return remaining > 0;
+            return armed && int32_t(now - expiryCycle) < 0;
         }
 
-        inline void tick()
+        inline bool expired(uint32_t now)
         {
-            if (remaining)
-                --remaining;
-        }
-
-        inline bool tickAndExpired()
-        {
-            if (0 == remaining) return false;
-            return 0 == --remaining;
+            if (armed && int32_t(now - expiryCycle) >= 0)
+            {
+                armed = false;
+                return true;
+            }
+            return false;
         }
     };
 
@@ -69,6 +76,7 @@ private:
     volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;
+    uint32_t nowCycles;
     CycleCounter steplen;
     int32_t maximumFrequency;
     CycleCounter dirsetup;
@@ -92,6 +100,7 @@ public:
       , rawCount(0)
       , DDSaddValue(0)
       , DDSaccumulator(0)
+      , nowCycles(0)
       , steplen(steplenNs)
       , dirsetup(dirsetupNs)
       , dirhold(dirholdNs)
@@ -99,9 +108,8 @@ public:
       , lastPulseWasForward(false)
       , currentDirection(false)
     {
-        float nsPerCycle = 1.0 / float(ThreadFreq) * 1000000000.0;
-        int32_t stepspaceInCycles = stepspaceNs ? ceil(stepspaceNs / nsPerCycle) : 1;
-        maximumFrequency = ThreadFreq / (steplen.cycles + stepspaceInCycles);
+        uint32_t stepspaceCycles = nsToCycles(stepspaceNs);
+        maximumFrequency = CpuFreq / (steplen.durationCycles + stepspaceCycles);
 
         IOType::schedule(0, PinType::DirectionPin, currentDirection);
     }
@@ -133,19 +141,17 @@ public:
     {
         changePins();
         IOType::schedule(cyclesPerTick, PinType::NoPin, false);
+        nowCycles += cyclesPerTick;
     }
 
 private:
     void changePins()
     {
-        dirhold.tick();
-        if (steplen.tickAndExpired())
+        if (steplen.expired(nowCycles))
         {
             IOType::schedule(0, PinType::StepPin, false);
-            dirhold.start();
+            dirhold.start(nowCycles);
         }
-        dirsetup.tick();
-        dirdelay.tick();
 
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)
@@ -153,11 +159,11 @@ private:
 
         bool isForward = toAdd > 0;
         bool needToSwitchDirections = currentDirection != isForward;
-        if (needToSwitchDirections && !dirhold.active())
+        if (needToSwitchDirections && !dirhold.active(nowCycles))
         {
             IOType::schedule(0, PinType::DirectionPin, isForward);
             currentDirection = isForward;
-            dirsetup.start();
+            dirsetup.start(nowCycles);
         }
 
         int32_t next = DDSaccumulator + toAdd;
@@ -170,7 +176,7 @@ private:
 
         // Hold off on stepping if we're still in dirsetup, but don't update
         // the accumulator so we step immediately after dirstep.
-        if (dirsetup.active())
+        if (dirsetup.active(nowCycles))
             return;
 
         // If we still need to switch directions, we're in dirhold so hold off.
@@ -178,7 +184,7 @@ private:
             return;
 
         // Hold opposite direction pulse if we are in dirdelay
-        if (dirdelay.active() && isForward != lastPulseWasForward)
+        if (dirdelay.active(nowCycles) && isForward != lastPulseWasForward)
             return;
 
         DDSaccumulator = next;
@@ -187,9 +193,9 @@ private:
             ++this->rawCount;
         else
             --this->rawCount;
-        steplen.start();
+        steplen.start(nowCycles);
         lastPulseWasForward = isForward;
-        dirdelay.start();
+        dirdelay.start(nowCycles);
     }
 };
 
