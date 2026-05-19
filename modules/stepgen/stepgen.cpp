@@ -64,7 +64,11 @@ PIOIO::PIOIO(std::string const& step, std::string const& direction)
     pio_sm_set_consecutive_pindirs(pio, sm, dirPin, 1, true);
 
     pio_sm_config config = stepgen_program_get_default_config(offset);
+    sm_config_set_sideset_pins(&config, stepPin);     // step driven by side-set
+    sm_config_set_out_pins(&config, dirPin, 1);       // dir driven by OUT pins
+    sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX); // RX unused; double TX depth
     pio_sm_init(pio, sm, offset, &config);
+    pio_sm_set_enabled(pio, sm, true);
 
     printf("PIOIO: configured step=GP%02d dir=GP%02d on PIO%d sm=%u offset=%u\n",
            stepPin, dirPin, PIO_NUM(pio), sm, offset);

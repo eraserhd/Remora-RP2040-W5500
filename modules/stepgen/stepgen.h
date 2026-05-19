@@ -24,10 +24,11 @@ public:
     {
     }
 
-    inline void schedule(uint32_t cycles, bool step, bool dir)
+    inline uint32_t schedule(uint32_t cycles, bool step, bool dir)
     {
         stepPin->set(step);
         dirPin->set(dir);
+        return 0;
     }
 };
 
@@ -50,9 +51,18 @@ private:
 public:
     PIOIO(std::string const& step, std::string const& direction);
 
-    inline void schedule(uint32_t cycles, bool step, bool dir)
+    // PIO program overhead per FIFO entry, in PIO cycles.
+    // See stepgen.pio for the derivation.
+    static constexpr uint32_t programOverhead = 6;
+
+    inline uint32_t schedule(uint32_t cycles, bool step, bool dir)
     {
-        // TODO: feed PIO TX FIFO once the PIO program does real work.
+        uint32_t wait = cycles > programOverhead ? cycles - programOverhead : 0;
+        uint32_t cmd = (wait & 0x3FFFFFFFu)
+                     | ((uint32_t)step << 30)
+                     | ((uint32_t)dir  << 31);
+        pio_sm_put_blocking(pio, sm, cmd);
+        return wait + programOverhead;
     }
 };
 
