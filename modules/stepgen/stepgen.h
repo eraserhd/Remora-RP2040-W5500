@@ -24,17 +24,10 @@ public:
     {
     }
 
-    inline void schedule(uint32_t cycles, PinType pin, bool value)
+    inline void schedule(uint32_t cycles, bool step, bool dir)
     {
-        switch (pin)
-        {
-        case PinType::StepPin:
-            stepPin->set(value);
-            break;
-        case PinType::DirectionPin:
-            dirPin->set(value);
-            break;
-        }
+        stepPin->set(step);
+        dirPin->set(dir);
     }
 };
 
@@ -57,7 +50,7 @@ private:
 public:
     PIOIO(std::string const& step, std::string const& direction);
 
-    inline void schedule(uint32_t cycles, PinType pin, bool value)
+    inline void schedule(uint32_t cycles, bool step, bool dir)
     {
         // TODO: feed PIO TX FIFO once the PIO program does real work.
     }

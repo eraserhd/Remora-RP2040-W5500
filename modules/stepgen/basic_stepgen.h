@@ -8,13 +8,6 @@
 #include "../../remora.h"
 #include "../module.h"
 
-enum class PinType
-{
-    StepPin,
-    DirectionPin,
-    NoPin
-};
-
 template<
     int32_t CpuFreq
   , int32_t ThreadFreq
@@ -84,6 +77,7 @@ private:
     CycleCounter dirdelay;
     bool lastPulseWasForward;
     bool currentDirection;
+    bool currentStep;
 
 public:
     BasicStepgen(
@@ -108,8 +102,9 @@ public:
       , dirdelay(dirdelayNs)
       , lastPulseWasForward(false)
       , currentDirection(false)
+      , currentStep(false)
     {
-        IOType::schedule(0, PinType::DirectionPin, currentDirection);
+        IOType::schedule(0, currentStep, currentDirection);
     }
 
     // Callable from core0, owing to DDSaddValue volatility and it being the only
@@ -138,7 +133,7 @@ public:
     virtual void update() override
     {
         changePins();
-        IOType::schedule(cyclesPerTick, PinType::NoPin, false);
+        IOType::schedule(cyclesPerTick, currentStep, currentDirection);
         nowCycles += cyclesPerTick;
     }
 
@@ -147,7 +142,8 @@ private:
     {
         if (steplen.expired(nowCycles))
         {
-            IOType::schedule(0, PinType::StepPin, false);
+            currentStep = false;
+            IOType::schedule(0, currentStep, currentDirection);
             dirhold.start(nowCycles);
         }
 
@@ -159,8 +155,8 @@ private:
         bool needToSwitchDirections = currentDirection != isForward;
         if (needToSwitchDirections && !dirhold.active(nowCycles))
         {
-            IOType::schedule(0, PinType::DirectionPin, isForward);
             currentDirection = isForward;
+            IOType::schedule(0, currentStep, currentDirection);
             dirsetup.start(nowCycles);
         }
 
@@ -186,7 +182,8 @@ private:
             return;
 
         DDSaccumulator = next;
-        IOType::schedule(0, PinType::StepPin, true);
+        currentStep = true;
+        IOType::schedule(0, currentStep, currentDirection);
         if (isForward)
             ++this->rawCount;
         else
