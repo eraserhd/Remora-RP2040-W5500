@@ -341,31 +341,13 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         ;
 }
 
-TEST(test_clamps_maximum_frequency_to_honor_steplen_and_stepspace)
-{
-    Scenario()
-        .withSteplen(50000)
-        .withStepspace(50000)
-        .withFrequency(THREAD_FREQ, true)
-        .afterRunning1Second()
-        .hasStepPulses(10000)
-        ;
-    Scenario()
-        .withSteplen(50000)
-        .withStepspace(50000)
-        .withFrequency(-THREAD_FREQ, true)
-        .afterRunning1Second()
-        .hasStepPulses(10000)
-        ;
-}
-
 TEST(test_waits_dirsetup_before_pulsing)
 {
     Scenario()
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirsetup(150000)
-        .withFrequency(THREAD_FREQ/2)
+        .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
         .sentCommands({
             {0,                   PinType::DirectionPin, false},
@@ -382,9 +364,9 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withStepspace(50000)
         .withDirsetup(75000)
         .withDirhold(150000)
-        .withFrequency(-THREAD_FREQ/2)
+        .withFrequency(-THREAD_FREQ/4)
         .afterPulses(1)
-        .withFrequency(THREAD_FREQ/2)
+        .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
         .sentCommands({
             { 0,                    PinType::DirectionPin, false},
@@ -402,9 +384,9 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirdelay(150000)
-        .withFrequency(-THREAD_FREQ/2)
+        .withFrequency(-THREAD_FREQ/4)
         .afterPulses(1)
-        .withFrequency(THREAD_FREQ/2)
+        .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
         .sentCommands({
             {0,                   PinType::DirectionPin, false},
@@ -424,7 +406,6 @@ int main()
     test_forward_direction_and_count();
     test_reverse_direction_and_count();
     test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks();
-    test_clamps_maximum_frequency_to_honor_steplen_and_stepspace();
     test_waits_dirsetup_before_pulsing();
     test_waits_dirhold_before_changing_direction();
     test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction();

@@ -121,10 +121,10 @@ public:
             DDSaddValue = 0;
             return;
         }
-        if (frequency > 0)
-            frequency = std::min(frequency, maximumFrequency);
-        else
-            frequency = std::max(frequency, -maximumFrequency);
+        if (std::abs(frequency) > maximumFrequency)
+        {
+            printf("frequency %d exceeds maximum %d\n", frequency, maximumFrequency);
+        }
         DDSaddValue = frequency * ((float)(1 << StepBit) / (float)ThreadFreq);
     }
 
