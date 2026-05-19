@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "hardware/pio.h"
+
 #include "../extern.h"
 #include "../../configuration.h"
 #include "../../drivers/pin/pin.h"
@@ -33,6 +35,31 @@ public:
             dirPin->set(value);
             break;
         }
+    }
+};
+
+class PIOIO
+{
+private:
+    int stepPin;
+    int dirPin;
+    PIO pio;
+    uint sm;
+    uint offset;
+
+    // Reuse a PIO block we already loaded the program into when possible,
+    // so multiple stepgens can share program memory.
+    static PIO lastPio;
+    static uint lastOffset;
+
+    bool findStateMachine();
+
+public:
+    PIOIO(std::string const& step, std::string const& direction);
+
+    inline void schedule(uint32_t cycles, PinType pin, bool value)
+    {
+        // TODO: feed PIO TX FIFO once the PIO program does real work.
     }
 };
 

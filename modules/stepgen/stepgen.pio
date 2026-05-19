@@ -1,0 +1,9 @@
+; Placeholder stepgen PIO program.  Compiles but does nothing useful.
+; Replace with real implementation when wiring up PIOIO::schedule().
+
+.program stepgen
+.pio_version 0
+
+.wrap_target
+    nop
+.wrap
