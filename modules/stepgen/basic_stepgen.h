@@ -132,9 +132,10 @@ public:
 
     virtual void update() override
     {
+        uint32_t nextCycles = nowCycles + cyclesPerTick;
         changePins();
-        IOType::schedule(cyclesPerTick, currentStep, currentDirection);
-        nowCycles += cyclesPerTick;
+        int32_t toWait = int32_t(nextCycles - nowCycles);
+        nowCycles += IOType::schedule(toWait, currentStep, currentDirection);
     }
 
 private:
@@ -143,7 +144,7 @@ private:
         if (steplen.expired(nowCycles))
         {
             currentStep = false;
-            IOType::schedule(0, currentStep, currentDirection);
+            nowCycles += IOType::schedule(0, currentStep, currentDirection);
             dirhold.start(nowCycles);
         }
 
@@ -156,7 +157,7 @@ private:
         if (needToSwitchDirections && !dirhold.active(nowCycles))
         {
             currentDirection = isForward;
-            IOType::schedule(0, currentStep, currentDirection);
+            nowCycles += IOType::schedule(0, currentStep, currentDirection);
             dirsetup.start(nowCycles);
         }
 
@@ -183,7 +184,7 @@ private:
 
         DDSaccumulator = next;
         currentStep = true;
-        IOType::schedule(0, currentStep, currentDirection);
+        nowCycles += IOType::schedule(0, currentStep, currentDirection);
         if (isForward)
             ++this->rawCount;
         else

@@ -42,10 +42,11 @@ struct TestIO
 
     TestIO(std::string, std::string) {}
 
-    void schedule(uint32_t cycles, bool step, bool dir)
+    uint32_t schedule(uint32_t cycles, bool step, bool dir)
     {
         cycleCounter += cycles;
         commands.push_back({cycleCounter, step, dir});
+        return cycles;
     }
 };
 
