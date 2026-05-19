@@ -102,15 +102,13 @@ public:
       , DDSaccumulator(0)
       , nowCycles(0)
       , steplen(steplenNs)
+      , maximumFrequency(CpuFreq / (steplen.durationCycles + nsToCycles(stepspaceNs)))
       , dirsetup(dirsetupNs)
       , dirhold(dirholdNs)
       , dirdelay(dirdelayNs)
       , lastPulseWasForward(false)
       , currentDirection(false)
     {
-        uint32_t stepspaceCycles = nsToCycles(stepspaceNs);
-        maximumFrequency = CpuFreq / (steplen.durationCycles + stepspaceCycles);
-
         IOType::schedule(0, PinType::DirectionPin, currentDirection);
     }
 
