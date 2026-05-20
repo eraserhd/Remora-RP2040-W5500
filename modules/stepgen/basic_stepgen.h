@@ -168,14 +168,7 @@ private:
     {
         while (tickCyclesRemaining() > 0)
         {
-            if (steplen.expired(plannedCycles))
-            {
-                currentStep = false;
-                plan(0, currentStep, currentDirection);
-                dirhold.start(plannedCycles);
-            }
-            else
-                dirhold.update(plannedCycles);
+            dirhold.update(plannedCycles);
             dirsetup.update(plannedCycles);
             dirdelay.update(plannedCycles);
 
@@ -236,6 +229,9 @@ private:
             steplen.start(plannedCycles);
             lastPulseWasForward = isForward;
             dirdelay.start(plannedCycles);
+            currentStep = false;
+            plan(steplen.durationCycles, currentStep, currentDirection);
+            dirhold.start(plannedCycles);
             planWaitUntilEndOfTick();
         }
     }
