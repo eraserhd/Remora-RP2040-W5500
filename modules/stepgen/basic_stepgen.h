@@ -85,7 +85,6 @@ private:
     CycleCounter dirdelay;
     bool lastPulseWasForward;
     bool currentDirection;
-    bool currentStep;
 
 public:
     BasicStepgen(
@@ -111,9 +110,8 @@ public:
       , dirdelay(dirdelayNs)
       , lastPulseWasForward(false)
       , currentDirection(false)
-      , currentStep(false)
     {
-        IOType::schedule(0, currentStep, currentDirection);
+        IOType::schedule(0, false, currentDirection);
     }
 
     // Callable from core0, owing to DDSaddValue volatility and it being the only
@@ -161,7 +159,7 @@ private:
     {
         int32_t toWait = tickCyclesRemaining();
         if (toWait > 0)
-            plan(toWait, currentStep, currentDirection);
+            plan(toWait, false, currentDirection);
     }
 
     void changePins()
@@ -184,7 +182,7 @@ private:
             if (needToSwitchDirections && !dirhold.active(plannedCycles))
             {
                 currentDirection = isForward;
-                plan(0, currentStep, currentDirection);
+                plan(0, false, currentDirection);
                 dirsetup.start(plannedCycles);
             }
 
@@ -220,17 +218,14 @@ private:
             }
 
             DDSaccumulator = next;
-            currentStep = true;
-            plan(0, currentStep, currentDirection);
+            plan(0, true, currentDirection);
             if (isForward)
                 ++this->rawCount;
             else
                 --this->rawCount;
-            steplen.start(plannedCycles);
             lastPulseWasForward = isForward;
             dirdelay.start(plannedCycles);
-            currentStep = false;
-            plan(steplen.durationCycles, currentStep, currentDirection);
+            plan(steplen.durationCycles, false, currentDirection);
             dirhold.start(plannedCycles);
             planWaitUntilEndOfTick();
         }
