@@ -200,7 +200,7 @@ private:
             if (dirsetup.active(plannedCycles))
             {
                 planWaitUntilEndOfTick();
-                return;
+                continue;
             }
 
             // If we still need to switch directions, we're in dirhold so hold off.
