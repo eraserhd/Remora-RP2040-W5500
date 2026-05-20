@@ -144,6 +144,9 @@ public:
 
     virtual void update() override
     {
+        dirhold.update(plannedCycles);
+        dirsetup.update(plannedCycles);
+        dirdelay.update(plannedCycles);
         changePins();
         tickStartCycle += cyclesPerTick;
     }
@@ -178,10 +181,6 @@ private:
 
     void changePins()
     {
-        dirhold.update(plannedCycles);
-        dirsetup.update(plannedCycles);
-        dirdelay.update(plannedCycles);
-
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)
         {
