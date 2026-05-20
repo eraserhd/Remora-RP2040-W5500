@@ -46,33 +46,43 @@ class BasicStepgen
             armed = true;
         }
 
+        inline int32_t remaining(uint32_t now) const
+        {
+            if (!armed) return 0;
+            return int32_t(now - expiryCycle);
+        }
+
         // Disarm if expired, so we don't spuriously show armed on next cycle.
         inline void update(uint32_t now)
         {
-            if (armed && int32_t(now - expiryCycle) >= 0)
+            if (armed && remaining(now) >= 0)
                 armed = false;
         }
 
         inline bool active(uint32_t now) const
         {
-            return armed && int32_t(now - expiryCycle) < 0;
+            return armed && remaining(now) < 0;
         }
     };
 
     struct DDSAccumulator
     {
         int32_t value;
+        bool stepTriggered;
 
-        inline DDSAccumulator() : value(0) {}
+        inline DDSAccumulator() : value(0), stepTriggered(false) {}
 
-        // Whether adding toAdd would cross the StepBit threshold.
-        inline bool wouldStep(int32_t toAdd) const
+        inline void advance(int32_t toAdd)
         {
+            if (stepTriggered) return;
             int32_t next = value + toAdd;
-            return ((next ^ value) & (1 << StepBit)) != 0;
+            if ((next ^ value) & (1 << StepBit))
+                stepTriggered = true;
+            value = next;
         }
 
-        inline void advance(int32_t toAdd) { value += toAdd; }
+        // Acknowledge that the triggered step has been emitted.
+        inline void stepped() { stepTriggered = false; }
     };
 
 private:
@@ -182,42 +192,42 @@ private:
     void changePins()
     {
         int32_t toAdd = DDSaddValue;
+        dds.advance(toAdd);
         if (0 == toAdd)
         {
             planWaitUntilEndOfTick();
             return;
         }
 
-        while (tickCyclesRemaining() > 0)
+        bool isForward = toAdd > 0;
+        if (currentDirection != isForward)
         {
-            bool isForward = toAdd > 0;
-            bool needToSwitchDirections = currentDirection != isForward;
-            if (needToSwitchDirections && !dirhold.active(plannedCycles))
+            uint32_t wait = dirhold.remaining(plannedCycles);
+            if (wait > tickCyclesRemaining())
             {
-                currentDirection = isForward;
-                plan(0, false, currentDirection);
-                dirsetup.start(plannedCycles);
+                // LinuxCNC might change its mind about direction before
+                // we get there.
+                planWaitUntilEndOfTick();
+                return;
             }
 
-            if (!dds.wouldStep(toAdd))
+            currentDirection = isForward;
+            plan(wait, false, currentDirection);
+            dirsetup.start(plannedCycles);
+        }
+
+        while (tickCyclesRemaining() > 0)
+        {
+            if (!dds.stepTriggered)
             {
-                dds.advance(toAdd);
                 planWaitUntilEndOfTick();
                 continue;
             }
 
-            // Hold off on stepping if we're still in dirsetup, but don't advance
-            // the accumulator so we step immediately after dirsetup.
+            // Hold off on stepping if we're still in dirsetup.
             if (dirsetup.active(plannedCycles))
             {
                 planEvitableWait(dirsetup.durationCycles);
-                continue;
-            }
-
-            // If we still need to switch directions, we're in dirhold so hold off.
-            if (needToSwitchDirections)
-            {
-                planWaitUntilEndOfTick();
                 continue;
             }
 
@@ -228,7 +238,7 @@ private:
                 continue;
             }
 
-            dds.advance(toAdd);
+            dds.stepped();
             plan(0, true, currentDirection);
             if (isForward)
                 ++this->rawCount;
