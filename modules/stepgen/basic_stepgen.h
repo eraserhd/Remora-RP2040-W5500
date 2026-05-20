@@ -69,13 +69,29 @@ class BasicStepgen
         }
     };
 
+    struct DDSAccumulator
+    {
+        int32_t value;
+
+        inline DDSAccumulator() : value(0) {}
+
+        // Whether adding toAdd would cross the StepBit threshold.
+        inline bool wouldStep(int32_t toAdd) const
+        {
+            int32_t next = value + toAdd;
+            return ((next ^ value) & (1 << StepBit)) != 0;
+        }
+
+        inline void advance(int32_t toAdd) { value += toAdd; }
+    };
+
 private:
     static constexpr int StepBit = 22;
 
     int jointNumber;
     volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
-    int32_t DDSaccumulator;
+    DDSAccumulator dds;
     uint32_t tickStartCycle;
     uint32_t plannedCycles;
     uint32_t steplenCycles;
@@ -100,7 +116,6 @@ public:
       , jointNumber(jointNumber)
       , rawCount(0)
       , DDSaddValue(0)
-      , DDSaccumulator(0)
       , tickStartCycle(0)
       , plannedCycles(0)
       , steplenCycles(nsToCycles(steplenNs))
@@ -198,17 +213,15 @@ private:
                 dirsetup.start(plannedCycles);
             }
 
-            int32_t next = DDSaccumulator + toAdd;
-            bool timeToStep = (next ^ DDSaccumulator) & (1 << StepBit);
-            if (!timeToStep)
+            if (!dds.wouldStep(toAdd))
             {
-                DDSaccumulator = next;
+                dds.advance(toAdd);
                 planWaitUntilEndOfTick();
                 continue;
             }
 
-            // Hold off on stepping if we're still in dirsetup, but don't update
-            // the accumulator so we step immediately after dirstep.
+            // Hold off on stepping if we're still in dirsetup, but don't advance
+            // the accumulator so we step immediately after dirsetup.
             if (dirsetup.active(plannedCycles))
             {
                 planEvitableWait(dirsetup.durationCycles);
@@ -229,7 +242,7 @@ private:
                 continue;
             }
 
-            DDSaccumulator = next;
+            dds.advance(toAdd);
             plan(0, true, currentDirection);
             if (isForward)
                 ++this->rawCount;
