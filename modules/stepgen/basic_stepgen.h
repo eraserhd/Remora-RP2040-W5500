@@ -173,18 +173,21 @@ private:
 
     void changePins()
     {
+        int32_t toAdd = DDSaddValue;
+        if (0 == toAdd)
+        {
+            dirhold.update(plannedCycles);
+            dirsetup.update(plannedCycles);
+            dirdelay.update(plannedCycles);
+            planWaitUntilEndOfTick();
+            return;
+        }
+
         while (tickCyclesRemaining() > 0)
         {
             dirhold.update(plannedCycles);
             dirsetup.update(plannedCycles);
             dirdelay.update(plannedCycles);
-
-            int32_t toAdd = DDSaddValue;
-            if (0 == toAdd)
-            {
-                planWaitUntilEndOfTick();
-                continue;
-            }
 
             bool isForward = toAdd > 0;
             bool needToSwitchDirections = currentDirection != isForward;
@@ -236,6 +239,7 @@ private:
             dirdelay.start(plannedCycles);
             plan(steplenCycles, false, currentDirection);
             dirhold.start(plannedCycles);
+            planWaitUntilEndOfTick(); //FIXME:
         }
     }
 };
