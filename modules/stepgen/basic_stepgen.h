@@ -46,6 +46,13 @@ class BasicStepgen
             armed = true;
         }
 
+        // Disarm if expired, so we don't spuriously show armed on next cycle.
+        inline void update(uint32_t now)
+        {
+            if (armed && int32_t(now - expiryCycle) >= 0)
+                armed = false;
+        }
+
         inline bool active(uint32_t now) const
         {
             return armed && int32_t(now - expiryCycle) < 0;
@@ -147,6 +154,10 @@ private:
             nowCycles += IOType::schedule(0, currentStep, currentDirection);
             dirhold.start(nowCycles);
         }
+        else
+            dirhold.update(nowCycles);
+        dirsetup.update(nowCycles);
+        dirdelay.update(nowCycles);
 
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)
