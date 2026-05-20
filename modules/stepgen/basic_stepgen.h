@@ -76,7 +76,7 @@ private:
     volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;
-    uint32_t tickStartCycles;
+    uint32_t tickStartCycle;
     uint32_t plannedCycles;
     CycleCounter steplen;
     int32_t maximumFrequency;
@@ -102,7 +102,7 @@ public:
       , rawCount(0)
       , DDSaddValue(0)
       , DDSaccumulator(0)
-      , tickStartCycles(0)
+      , tickStartCycle(0)
       , plannedCycles(0)
       , steplen(steplenNs)
       , maximumFrequency(CpuFreq / (steplen.durationCycles + nsToCycles(stepspaceNs)))
@@ -143,7 +143,7 @@ public:
     {
         changePins();
         planWaitUntilEndOfTick();
-        tickStartCycles += cyclesPerTick;
+        tickStartCycle += cyclesPerTick;
     }
 
 private:
@@ -154,7 +154,7 @@ private:
 
     void planWaitUntilEndOfTick()
     {
-        uint32_t nextCycles = tickStartCycles + cyclesPerTick;
+        uint32_t nextCycles = tickStartCycle + cyclesPerTick;
         int32_t toWait = int32_t(nextCycles - plannedCycles);
         if (toWait > 0)
             plan(toWait, currentStep, currentDirection);
