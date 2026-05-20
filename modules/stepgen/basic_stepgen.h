@@ -152,10 +152,15 @@ private:
         plannedCycles += IOType::schedule(cycles, step, dir);
     }
 
-    void planWaitUntilEndOfTick()
+    inline int32_t tickCyclesRemaining() const
     {
         uint32_t nextCycles = tickStartCycle + cyclesPerTick;
-        int32_t toWait = int32_t(nextCycles - plannedCycles);
+        return int32_t(nextCycles - plannedCycles);
+    }
+
+    void planWaitUntilEndOfTick()
+    {
+        int32_t toWait = tickCyclesRemaining();
         if (toWait > 0)
             plan(toWait, currentStep, currentDirection);
     }
