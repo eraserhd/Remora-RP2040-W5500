@@ -143,16 +143,28 @@ public:
     {
     }
 
-    Scenario& dumpCalls(int n = 40)
+    void dumpCommands(decltype(stepgen->io().commands)::const_iterator begin, decltype(stepgen->io().commands)::const_iterator end)
+    {
+        for (auto it = begin; it != end; ++it)
+        {
+            auto const& cmd = *it;
+            printf("    cycles=%u step=%d dir=%d\n", cmd.cycles, int(cmd.step), int(cmd.dir));
+        }
+    }
+
+    Scenario& dumpCalls(int limit = 20)
     {
         auto const& calls = stepgen->io().commands;
-        int count = std::min(n, int(calls.size()));
-        printf("\n  Calls (%d of %d):\n", count, int(calls.size()));
-        for (int i = 0; i < count; ++i)
+        printf("\n  Calls (of %d):\n", int(calls.size()));
+        if (2*limit >= calls.size())
         {
-            auto const& c = calls[i];
-            printf("    cycles=%u step=%d dir=%d\n",
-                c.cycles, int(c.step), int(c.dir));
+            dumpCommands(calls.begin(), calls.end());
+        }
+        else
+        {
+            dumpCommands(calls.begin(), calls.begin()+limit);
+            printf("         ...\n");
+            dumpCommands(calls.end()-limit, calls.end());
         }
         return *this;
     }
