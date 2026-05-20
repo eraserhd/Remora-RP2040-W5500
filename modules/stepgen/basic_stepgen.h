@@ -57,16 +57,6 @@ class BasicStepgen
         {
             return armed && int32_t(now - expiryCycle) < 0;
         }
-
-        inline bool expired(uint32_t now)
-        {
-            if (armed && int32_t(now - expiryCycle) >= 0)
-            {
-                armed = false;
-                return true;
-            }
-            return false;
-        }
     };
 
     struct DDSAccumulator
