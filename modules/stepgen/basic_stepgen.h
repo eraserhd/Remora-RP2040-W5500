@@ -216,25 +216,19 @@ private:
             dirsetup.start(plannedCycles);
         }
 
+        // Hold off on stepping if we're still in dirsetup.
+        if (dirsetup.active(plannedCycles))
+            planEvitableWait(dirsetup.durationCycles);
+
+        // Hold opposite direction pulse if we are in dirdelay
+        if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
+            planEvitableWait(dirdelay.durationCycles);
+
         while (tickCyclesRemaining() > 0)
         {
             if (!dds.stepTriggered)
             {
                 planWaitUntilEndOfTick();
-                continue;
-            }
-
-            // Hold off on stepping if we're still in dirsetup.
-            if (dirsetup.active(plannedCycles))
-            {
-                planEvitableWait(dirsetup.durationCycles);
-                continue;
-            }
-
-            // Hold opposite direction pulse if we are in dirdelay
-            if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
-            {
-                planEvitableWait(dirdelay.durationCycles);
                 continue;
             }
 
