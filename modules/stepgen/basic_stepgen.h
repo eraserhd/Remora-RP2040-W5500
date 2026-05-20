@@ -91,6 +91,7 @@ private:
     int jointNumber;
     volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
+    int32_t localDDSaddValue;
     DDSAccumulator dds;
     uint32_t tickStartCycle;
     uint32_t plannedCycles;
@@ -116,6 +117,7 @@ public:
       , jointNumber(jointNumber)
       , rawCount(0)
       , DDSaddValue(0)
+      , localDDSaddValue(0)
       , tickStartCycle(0)
       , plannedCycles(0)
       , steplenCycles(nsToCycles(steplenNs))
@@ -191,15 +193,15 @@ private:
 
     void changePins()
     {
-        int32_t toAdd = DDSaddValue;
-        dds.advance(toAdd);
-        if (0 == toAdd)
+        localDDSaddValue = DDSaddValue;
+        dds.advance(localDDSaddValue);
+        if (0 == localDDSaddValue)
         {
             planWaitUntilEndOfTick();
             return;
         }
 
-        bool isForward = toAdd > 0;
+        bool isForward = localDDSaddValue > 0;
         if (currentDirection != isForward)
         {
             uint32_t wait = dirhold.remaining(plannedCycles);
