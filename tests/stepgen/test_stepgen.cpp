@@ -32,20 +32,22 @@ struct TestIO
 {
     struct Command
     {
+        int tick;
         uint32_t cycles;
-        bool     step;
-        bool     dir;
+        bool step;
+        bool dir;
     };
 
     std::vector<Command> commands;
     uint32_t cycleCounter = 0;
+    int tick = 0;
 
     TestIO(std::string, std::string) {}
 
     uint32_t schedule(uint32_t cycles, bool step, bool dir)
     {
         cycleCounter += cycles;
-        commands.push_back({cycleCounter, step, dir});
+        commands.push_back({tick, cycleCounter, step, dir});
         return cycles;
     }
 };
@@ -81,7 +83,6 @@ private:
     int32_t dirdelay;
     bool reportedScheduleFailure;
     std::optional<TestStepgen> stepgen;
-    uint64_t tickCycle;
 
     void start()
     {
@@ -94,14 +95,14 @@ private:
         auto& testIO = stepgen->io();
         size_t before = testIO.commands.size();
         stepgen->update();
-        tickCycle += CYCLES_PER_TICK;
+        ++testIO.tick;
         uint64_t planned = 0;
         for (auto const& command : testIO.commands)
             planned += command.cycles;
-        if (!reportedScheduleFailure && planned < tickCycle)
+        if (!reportedScheduleFailure && planned < uint64_t(testIO.tick)*CYCLES_PER_TICK)
         {
             reportedScheduleFailure = true;
-            fail("update() did not plan enough cycles (planned %u, tick %u)\n", planned, tickCycle);
+            fail("update() did not plan enough cycles (planned %u, tick %u)\n", planned, uint64_t(testIO.tick)*CYCLES_PER_TICK);
         }
     }
 
@@ -139,7 +140,6 @@ public:
       , dirhold(0)
       , dirdelay(0)
       , reportedScheduleFailure(false)
-      , tickCycle(0)
     {
     }
 
@@ -148,14 +148,14 @@ public:
         for (auto it = begin; it != end; ++it)
         {
             auto const& cmd = *it;
-            printf("    cycles=%u step=%d dir=%d\n", cmd.cycles, int(cmd.step), int(cmd.dir));
+            printf("    tick=%d cycles=%u step=%d dir=%d\n", cmd.tick, cmd.cycles, int(cmd.step), int(cmd.dir));
         }
     }
 
     Scenario& dumpCalls(int limit = 20)
     {
         auto const& calls = stepgen->io().commands;
-        printf("\n  Calls (of %d):\n", int(calls.size()));
+        printf("\n  Calls (of %d, CYCLES_PER_TICK is %d):\n", int(calls.size()), int(CYCLES_PER_TICK));
         if (2*limit >= calls.size())
         {
             dumpCommands(calls.begin(), calls.end());
@@ -324,6 +324,18 @@ TEST(test_half_rate_steps_every_two_updates)
         ;
 }
 
+TEST(test_can_step_once_per_tick)
+{
+    Scenario()
+        .withSteplen(250)
+        .withStepspace(250)
+        .withFrequency(-THREAD_FREQ)
+        .afterRunning1Second()
+        .hasStepPulses(THREAD_FREQ)
+        .madePulsesOfLength(ceil(CPU_FREQ / 1000000000.0 * 250.0)) 
+        ;
+}
+
 TEST(test_forward_direction_and_count)
 {
     Scenario()
@@ -422,6 +434,7 @@ int main()
     test_disabled_joint_does_not_step();
     test_zero_frequency_does_not_step();
     test_half_rate_steps_every_two_updates();
+    test_can_step_once_per_tick();
     test_forward_direction_and_count();
     test_reverse_direction_and_count();
     test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks();
