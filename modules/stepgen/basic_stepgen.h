@@ -142,7 +142,6 @@ public:
     virtual void update() override
     {
         changePins();
-        planWaitUntilEndOfTick();
         tickStartCycle += cyclesPerTick;
     }
 
@@ -180,7 +179,10 @@ private:
 
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)
+        {
+            planWaitUntilEndOfTick();
             return;
+        }
 
         bool isForward = toAdd > 0;
         bool needToSwitchDirections = currentDirection != isForward;
@@ -196,21 +198,32 @@ private:
         if (!timeToStep)
         {
             DDSaccumulator = next;
+            planWaitUntilEndOfTick();
             return;
         }
 
         // Hold off on stepping if we're still in dirsetup, but don't update
         // the accumulator so we step immediately after dirstep.
         if (dirsetup.active(plannedCycles))
+        {
+            planWaitUntilEndOfTick();
             return;
+        }
 
         // If we still need to switch directions, we're in dirhold so hold off.
         if (needToSwitchDirections)
+        {
+            planWaitUntilEndOfTick();
             return;
+        }
+
 
         // Hold opposite direction pulse if we are in dirdelay
         if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
+        {
+            planWaitUntilEndOfTick();
             return;
+        }
 
         DDSaccumulator = next;
         currentStep = true;
@@ -222,6 +235,7 @@ private:
         steplen.start(plannedCycles);
         lastPulseWasForward = isForward;
         dirdelay.start(plannedCycles);
+        planWaitUntilEndOfTick();
     }
 };
 

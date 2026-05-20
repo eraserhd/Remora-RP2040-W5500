@@ -81,6 +81,7 @@ private:
     int32_t dirdelay;
     bool reportedScheduleFailure;
     std::optional<TestStepgen> stepgen;
+    uint64_t tickCycle;
 
     void start()
     {
@@ -93,10 +94,14 @@ private:
         auto& testIO = stepgen->io();
         size_t before = testIO.commands.size();
         stepgen->update();
-        if (testIO.commands.size() == before && !reportedScheduleFailure)
+        tickCycle += CYCLES_PER_TICK;
+        uint64_t planned = 0;
+        for (auto const& command : testIO.commands)
+            planned += command.cycles;
+        if (!reportedScheduleFailure && planned < tickCycle)
         {
             reportedScheduleFailure = true;
-            fail("update() emitted no commands (always-schedule invariant violated)");
+            fail("update() did not plan enough cycles (planned %u, tick %u)\n", planned, tickCycle);
         }
     }
 
@@ -134,6 +139,7 @@ public:
       , dirhold(0)
       , dirdelay(0)
       , reportedScheduleFailure(false)
+      , tickCycle(0)
     {
     }
 
