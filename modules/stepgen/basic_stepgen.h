@@ -178,22 +178,19 @@ private:
 
     void changePins()
     {
+        dirhold.update(plannedCycles);
+        dirsetup.update(plannedCycles);
+        dirdelay.update(plannedCycles);
+
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)
         {
-            dirhold.update(plannedCycles);
-            dirsetup.update(plannedCycles);
-            dirdelay.update(plannedCycles);
             planWaitUntilEndOfTick();
             return;
         }
 
         while (tickCyclesRemaining() > 0)
         {
-            dirhold.update(plannedCycles);
-            dirsetup.update(plannedCycles);
-            dirdelay.update(plannedCycles);
-
             bool isForward = toAdd > 0;
             bool needToSwitchDirections = currentDirection != isForward;
             if (needToSwitchDirections && !dirhold.active(plannedCycles))
