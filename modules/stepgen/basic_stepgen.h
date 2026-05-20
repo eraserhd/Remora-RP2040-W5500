@@ -104,7 +104,7 @@ public:
       , tickStartCycle(0)
       , plannedCycles(0)
       , steplenCycles(nsToCycles(steplenNs))
-      , maximumFrequency(CpuFreq / (steplenCycles + nsToCycles(stepspaceNs)))
+      , maximumFrequency(CpuFreq / nsToCycles(steplenNs + stepspaceNs))
       , dirsetup(dirsetupNs)
       , dirhold(dirholdNs)
       , dirdelay(dirdelayNs)
@@ -144,7 +144,7 @@ public:
     }
 
 private:
-    void plan(uint32_t cycles, bool step, bool dir)
+    inline void plan(uint32_t cycles, bool step, bool dir)
     {
         plannedCycles += IOType::schedule(cycles, step, dir);
     }
@@ -155,11 +155,20 @@ private:
         return int32_t(nextCycles - plannedCycles);
     }
 
-    void planWaitUntilEndOfTick()
+    inline void planWaitUntilEndOfTick()
     {
         int32_t toWait = tickCyclesRemaining();
         if (toWait > 0)
             plan(toWait, false, currentDirection);
+    }
+
+    // Wait for cycles, but not past the end of the tick in case we
+    // get new orders in.
+    inline void planEvitableWait(uint32_t cycles)
+    {
+        int32_t remaining = tickCyclesRemaining();
+        if (remaining <= 0) return;
+        plan(std::min(cycles, uint32_t(remaining)), false, currentDirection);
     }
 
     void changePins()
@@ -199,7 +208,7 @@ private:
             // the accumulator so we step immediately after dirstep.
             if (dirsetup.active(plannedCycles))
             {
-                planWaitUntilEndOfTick();
+                planEvitableWait(dirsetup.durationCycles);
                 continue;
             }
 
@@ -213,7 +222,7 @@ private:
             // Hold opposite direction pulse if we are in dirdelay
             if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
             {
-                planWaitUntilEndOfTick();
+                planEvitableWait(dirdelay.durationCycles);
                 continue;
             }
 
@@ -227,7 +236,6 @@ private:
             dirdelay.start(plannedCycles);
             plan(steplenCycles, false, currentDirection);
             dirhold.start(plannedCycles);
-            planWaitUntilEndOfTick();
         }
     }
 };
