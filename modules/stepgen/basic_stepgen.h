@@ -76,7 +76,8 @@ private:
     volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
     int32_t DDSaccumulator;
-    uint32_t nowCycles;
+    uint32_t tickStartCycles;
+    uint32_t plannedCycles;
     CycleCounter steplen;
     int32_t maximumFrequency;
     CycleCounter dirsetup;
@@ -101,7 +102,8 @@ public:
       , rawCount(0)
       , DDSaddValue(0)
       , DDSaccumulator(0)
-      , nowCycles(0)
+      , tickStartCycles(0)
+      , plannedCycles(0)
       , steplen(steplenNs)
       , maximumFrequency(CpuFreq / (steplen.durationCycles + nsToCycles(stepspaceNs)))
       , dirsetup(dirsetupNs)
@@ -139,25 +141,26 @@ public:
 
     virtual void update() override
     {
-        uint32_t nextCycles = nowCycles + cyclesPerTick;
         changePins();
-        int32_t toWait = int32_t(nextCycles - nowCycles);
-        nowCycles += IOType::schedule(toWait, currentStep, currentDirection);
+        uint32_t nextCycles = tickStartCycles + cyclesPerTick;
+        int32_t toWait = int32_t(nextCycles - plannedCycles);
+        plannedCycles += IOType::schedule(toWait, currentStep, currentDirection);
+        tickStartCycles += cyclesPerTick;
     }
 
 private:
     void changePins()
     {
-        if (steplen.expired(nowCycles))
+        if (steplen.expired(plannedCycles))
         {
             currentStep = false;
-            nowCycles += IOType::schedule(0, currentStep, currentDirection);
-            dirhold.start(nowCycles);
+            plannedCycles += IOType::schedule(0, currentStep, currentDirection);
+            dirhold.start(plannedCycles);
         }
         else
-            dirhold.update(nowCycles);
-        dirsetup.update(nowCycles);
-        dirdelay.update(nowCycles);
+            dirhold.update(plannedCycles);
+        dirsetup.update(plannedCycles);
+        dirdelay.update(plannedCycles);
 
         int32_t toAdd = DDSaddValue;
         if (0 == toAdd)
@@ -165,11 +168,11 @@ private:
 
         bool isForward = toAdd > 0;
         bool needToSwitchDirections = currentDirection != isForward;
-        if (needToSwitchDirections && !dirhold.active(nowCycles))
+        if (needToSwitchDirections && !dirhold.active(plannedCycles))
         {
             currentDirection = isForward;
-            nowCycles += IOType::schedule(0, currentStep, currentDirection);
-            dirsetup.start(nowCycles);
+            plannedCycles += IOType::schedule(0, currentStep, currentDirection);
+            dirsetup.start(plannedCycles);
         }
 
         int32_t next = DDSaccumulator + toAdd;
@@ -182,7 +185,7 @@ private:
 
         // Hold off on stepping if we're still in dirsetup, but don't update
         // the accumulator so we step immediately after dirstep.
-        if (dirsetup.active(nowCycles))
+        if (dirsetup.active(plannedCycles))
             return;
 
         // If we still need to switch directions, we're in dirhold so hold off.
@@ -190,19 +193,19 @@ private:
             return;
 
         // Hold opposite direction pulse if we are in dirdelay
-        if (dirdelay.active(nowCycles) && isForward != lastPulseWasForward)
+        if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
             return;
 
         DDSaccumulator = next;
         currentStep = true;
-        nowCycles += IOType::schedule(0, currentStep, currentDirection);
+        plannedCycles += IOType::schedule(0, currentStep, currentDirection);
         if (isForward)
             ++this->rawCount;
         else
             --this->rawCount;
-        steplen.start(nowCycles);
+        steplen.start(plannedCycles);
         lastPulseWasForward = isForward;
-        dirdelay.start(nowCycles);
+        dirdelay.start(plannedCycles);
     }
 };
 
