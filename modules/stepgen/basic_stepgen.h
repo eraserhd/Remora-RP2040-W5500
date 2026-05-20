@@ -78,7 +78,7 @@ private:
     int32_t DDSaccumulator;
     uint32_t tickStartCycle;
     uint32_t plannedCycles;
-    CycleCounter steplen;
+    uint32_t steplenCycles;
     int32_t maximumFrequency;
     CycleCounter dirsetup;
     CycleCounter dirhold;
@@ -103,8 +103,8 @@ public:
       , DDSaccumulator(0)
       , tickStartCycle(0)
       , plannedCycles(0)
-      , steplen(steplenNs)
-      , maximumFrequency(CpuFreq / (steplen.durationCycles + nsToCycles(stepspaceNs)))
+      , steplenCycles(nsToCycles(steplenNs))
+      , maximumFrequency(CpuFreq / (steplenCycles + nsToCycles(stepspaceNs)))
       , dirsetup(dirsetupNs)
       , dirhold(dirholdNs)
       , dirdelay(dirdelayNs)
@@ -225,7 +225,7 @@ private:
                 --this->rawCount;
             lastPulseWasForward = isForward;
             dirdelay.start(plannedCycles);
-            plan(steplen.durationCycles, false, currentDirection);
+            plan(steplenCycles, false, currentDirection);
             dirhold.start(plannedCycles);
             planWaitUntilEndOfTick();
         }
