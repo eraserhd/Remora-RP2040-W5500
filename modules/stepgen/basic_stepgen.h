@@ -144,17 +144,22 @@ public:
         changePins();
         uint32_t nextCycles = tickStartCycles + cyclesPerTick;
         int32_t toWait = int32_t(nextCycles - plannedCycles);
-        plannedCycles += IOType::schedule(toWait, currentStep, currentDirection);
+        plan(toWait, currentStep, currentDirection);
         tickStartCycles += cyclesPerTick;
     }
 
 private:
+    void plan(uint32_t cycles, bool step, bool dir)
+    {
+        plannedCycles += IOType::schedule(cycles, step, dir);
+    }
+
     void changePins()
     {
         if (steplen.expired(plannedCycles))
         {
             currentStep = false;
-            plannedCycles += IOType::schedule(0, currentStep, currentDirection);
+            plan(0, currentStep, currentDirection);
             dirhold.start(plannedCycles);
         }
         else
@@ -171,7 +176,7 @@ private:
         if (needToSwitchDirections && !dirhold.active(plannedCycles))
         {
             currentDirection = isForward;
-            plannedCycles += IOType::schedule(0, currentStep, currentDirection);
+            plan(0, currentStep, currentDirection);
             dirsetup.start(plannedCycles);
         }
 
@@ -198,7 +203,7 @@ private:
 
         DDSaccumulator = next;
         currentStep = true;
-        plannedCycles += IOType::schedule(0, currentStep, currentDirection);
+        plan(0, currentStep, currentDirection);
         if (isForward)
             ++this->rawCount;
         else
