@@ -166,76 +166,78 @@ private:
 
     void changePins()
     {
-        if (steplen.expired(plannedCycles))
+        while (tickCyclesRemaining() > 0)
         {
-            currentStep = false;
-            plan(0, currentStep, currentDirection);
-            dirhold.start(plannedCycles);
-        }
-        else
-            dirhold.update(plannedCycles);
-        dirsetup.update(plannedCycles);
-        dirdelay.update(plannedCycles);
+            if (steplen.expired(plannedCycles))
+            {
+                currentStep = false;
+                plan(0, currentStep, currentDirection);
+                dirhold.start(plannedCycles);
+            }
+            else
+                dirhold.update(plannedCycles);
+            dirsetup.update(plannedCycles);
+            dirdelay.update(plannedCycles);
 
-        int32_t toAdd = DDSaddValue;
-        if (0 == toAdd)
-        {
-            planWaitUntilEndOfTick();
-            return;
-        }
+            int32_t toAdd = DDSaddValue;
+            if (0 == toAdd)
+            {
+                planWaitUntilEndOfTick();
+                continue;
+            }
 
-        bool isForward = toAdd > 0;
-        bool needToSwitchDirections = currentDirection != isForward;
-        if (needToSwitchDirections && !dirhold.active(plannedCycles))
-        {
-            currentDirection = isForward;
-            plan(0, currentStep, currentDirection);
-            dirsetup.start(plannedCycles);
-        }
+            bool isForward = toAdd > 0;
+            bool needToSwitchDirections = currentDirection != isForward;
+            if (needToSwitchDirections && !dirhold.active(plannedCycles))
+            {
+                currentDirection = isForward;
+                plan(0, currentStep, currentDirection);
+                dirsetup.start(plannedCycles);
+            }
 
-        int32_t next = DDSaccumulator + toAdd;
-        bool timeToStep = (next ^ DDSaccumulator) & (1 << StepBit);
-        if (!timeToStep)
-        {
+            int32_t next = DDSaccumulator + toAdd;
+            bool timeToStep = (next ^ DDSaccumulator) & (1 << StepBit);
+            if (!timeToStep)
+            {
+                DDSaccumulator = next;
+                planWaitUntilEndOfTick();
+                continue;
+            }
+
+            // Hold off on stepping if we're still in dirsetup, but don't update
+            // the accumulator so we step immediately after dirstep.
+            if (dirsetup.active(plannedCycles))
+            {
+                planWaitUntilEndOfTick();
+                return;
+            }
+
+            // If we still need to switch directions, we're in dirhold so hold off.
+            if (needToSwitchDirections)
+            {
+                planWaitUntilEndOfTick();
+                continue;
+            }
+
+            // Hold opposite direction pulse if we are in dirdelay
+            if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
+            {
+                planWaitUntilEndOfTick();
+                continue;
+            }
+
             DDSaccumulator = next;
+            currentStep = true;
+            plan(0, currentStep, currentDirection);
+            if (isForward)
+                ++this->rawCount;
+            else
+                --this->rawCount;
+            steplen.start(plannedCycles);
+            lastPulseWasForward = isForward;
+            dirdelay.start(plannedCycles);
             planWaitUntilEndOfTick();
-            return;
         }
-
-        // Hold off on stepping if we're still in dirsetup, but don't update
-        // the accumulator so we step immediately after dirstep.
-        if (dirsetup.active(plannedCycles))
-        {
-            planWaitUntilEndOfTick();
-            return;
-        }
-
-        // If we still need to switch directions, we're in dirhold so hold off.
-        if (needToSwitchDirections)
-        {
-            planWaitUntilEndOfTick();
-            return;
-        }
-
-
-        // Hold opposite direction pulse if we are in dirdelay
-        if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
-        {
-            planWaitUntilEndOfTick();
-            return;
-        }
-
-        DDSaccumulator = next;
-        currentStep = true;
-        plan(0, currentStep, currentDirection);
-        if (isForward)
-            ++this->rawCount;
-        else
-            --this->rawCount;
-        steplen.start(plannedCycles);
-        lastPulseWasForward = isForward;
-        dirdelay.start(plannedCycles);
-        planWaitUntilEndOfTick();
     }
 };
 
