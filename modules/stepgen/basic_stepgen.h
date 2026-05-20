@@ -142,9 +142,7 @@ public:
     virtual void update() override
     {
         changePins();
-        uint32_t nextCycles = tickStartCycles + cyclesPerTick;
-        int32_t toWait = int32_t(nextCycles - plannedCycles);
-        plan(toWait, currentStep, currentDirection);
+        planWaitUntilEndOfTick();
         tickStartCycles += cyclesPerTick;
     }
 
@@ -152,6 +150,14 @@ private:
     void plan(uint32_t cycles, bool step, bool dir)
     {
         plannedCycles += IOType::schedule(cycles, step, dir);
+    }
+
+    void planWaitUntilEndOfTick()
+    {
+        uint32_t nextCycles = tickStartCycles + cyclesPerTick;
+        int32_t toWait = int32_t(nextCycles - plannedCycles);
+        if (toWait > 0)
+            plan(toWait, currentStep, currentDirection);
     }
 
     void changePins()
