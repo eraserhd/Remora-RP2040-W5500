@@ -86,7 +86,7 @@ class BasicStepgen
     };
 
 private:
-    static constexpr int StepBit = 22;
+    static constexpr int StepBit = 30;
 
     int jointNumber;
     volatile int32_t rawCount;
