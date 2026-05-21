@@ -379,7 +379,7 @@ TEST(test_reverse_direction_and_count)
         ;
 }
 
-TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
+TEST(test_steplen_greater_than_thread_frequency_keeps_pulse_high_for_multiple_ticks)
 {
     Scenario()
         .withSteplen(50000)
@@ -460,7 +460,7 @@ int main()
     test_can_step_once_per_tick();
     test_forward_direction_and_count();
     test_reverse_direction_and_count();
-    test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks();
+    test_steplen_greater_than_thread_frequency_keeps_pulse_high_for_multiple_ticks();
     test_waits_dirsetup_before_pulsing();
     test_waits_dirhold_before_changing_direction();
     test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction();
