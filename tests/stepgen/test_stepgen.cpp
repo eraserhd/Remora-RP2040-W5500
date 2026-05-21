@@ -393,10 +393,10 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withFrequency(25)
         .afterPulses(1)
         .outputsStepAndDir({
-            { false, false,     0 },
-            { false,  true, 25_Hz },
-            {  true,  true,  6250 },
-            { false,  true,     0 },
+            { false, false,        0 },
+            { false,  true,    25_Hz },
+            {  true,  true, 50000_ns },
+            { false,  true,        0 },
         })
         .madePulsesOfLength(2 * CYCLES_PER_TICK)
         ;
