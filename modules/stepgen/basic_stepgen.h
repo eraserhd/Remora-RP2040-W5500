@@ -15,24 +15,19 @@ struct BasicDDSAccumulator
 
     inline BasicDDSAccumulator() : value(0) {}
 
-    inline bool triggered() const
-    {
-        return value > Dx || value <= -Dx;
-    }
+    static constexpr int32_t low  = -Dx + 1;
+    static constexpr int32_t high = Dx;
 
-    inline void advance(int32_t freq, int32_t cycles)
-    {
-        if (triggered()) return;
-        value += 2*freq*cycles;
-    }
+    inline bool triggered() const                     { return value < low || value > high; }
+    inline void advance(int32_t freq, int32_t cycles) { if (!triggered()) value += 2*freq*cycles; }
 
     // Acknowledge that the triggered step has been emitted.
     inline void reset()
     {
-        if (value > Dx)
-            value -= 2*Dx;
-        else if (value <= -Dx)
-            value += 2*Dx;
+        assert(triggered());
+        if (value < low) value += 2*Dx;
+        else if (value > high) value -= 2*Dx;
+        assert(!triggered());
     }
 };
 
