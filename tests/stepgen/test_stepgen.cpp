@@ -73,13 +73,6 @@ struct TestIO
     }
 };
 
-struct ExpectedCommand
-{
-    uint32_t cycles;
-    bool step;
-    bool dir;
-};
-
 static const int32_t THREAD_FREQ = 40000;
 static const char* STEP_PIN = "GP02";
 static const char* DIR_PIN  = "GP03";
