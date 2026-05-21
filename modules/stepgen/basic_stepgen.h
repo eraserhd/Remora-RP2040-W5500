@@ -8,27 +8,32 @@
 #include "../../remora.h"
 #include "../module.h"
 
-struct DDSAccumulator
+template<int32_t Dx>
+struct BasicDDSAccumulator
 {
-    uint32_t value;
-    bool stepTriggered;
+    int32_t value;
 
-    static constexpr int stepBit = 31;
+    inline BasicDDSAccumulator() : value(0) {}
 
-
-    inline DDSAccumulator() : value(0), stepTriggered(false) {}
-
-    inline void advance(int32_t toAdd)
+    inline bool triggered() const
     {
-        if (stepTriggered) return;
-        int32_t next = value + toAdd;
-        if ((next ^ value) & (1U << stepBit))
-            stepTriggered = true;
-        value = next;
+        return value > Dx || value <= -Dx;
+    }
+
+    inline void advance(int32_t freq, int32_t cycles)
+    {
+        if (triggered()) return;
+        value += 2*freq*cycles;
     }
 
     // Acknowledge that the triggered step has been emitted.
-    inline void stepped() { stepTriggered = false; }
+    inline void reset()
+    {
+        if (value > Dx)
+            value -= 2*Dx;
+        else if (value <= -Dx)
+            value += 2*Dx;
+    }
 };
 
 
@@ -89,11 +94,13 @@ class BasicStepgen
         }
     };
 
+    using DDSAccumulator = BasicDDSAccumulator<CpuFreq>;
+
 private:
     int jointNumber;
     volatile int32_t rawCount;
-    volatile int32_t DDSaddValue;
-    int32_t localDDSaddValue;
+    volatile int32_t frequency;
+    int32_t localFrequency;
     DDSAccumulator dds;
     uint32_t tickStartCycle;
     uint32_t plannedCycles;
@@ -118,8 +125,8 @@ public:
     ) : IOType(step, direction)
       , jointNumber(jointNumber)
       , rawCount(0)
-      , DDSaddValue(0)
-      , localDDSaddValue(0)
+      , frequency(0)
+      , localFrequency(0)
       , tickStartCycle(0)
       , plannedCycles(0)
       , steplenCycles(nsToCycles(steplenNs))
@@ -133,20 +140,20 @@ public:
         IOType::schedule(0, false, currentDirection);
     }
 
-    // Callable from core0, owing to DDSaddValue volatility and it being the only
+    // Callable from core0, owing to frequency volatility and it being the only
     // data member updated so it can't be inconsistent.
     void setFrequency(int32_t frequency, bool enabled)
     {
         if (!enabled)
         {
-            DDSaddValue = 0;
+            this->frequency = 0;
             return;
         }
+        this->frequency = frequency;
         if (std::abs(frequency) > maximumFrequency)
         {
             printf("frequency %d exceeds maximum %d\n", frequency, maximumFrequency);
         }
-        DDSaddValue = frequency * ((float)(1U << DDSAccumulator::stepBit) / (float)ThreadFreq);
     }
 
     // Callable from core0, owing to rawCount volatility and it being the only
@@ -195,15 +202,15 @@ private:
 
     void changePins()
     {
-        localDDSaddValue = DDSaddValue;
-        dds.advance(localDDSaddValue);
-        if (0 == localDDSaddValue)
+        localFrequency = frequency;
+        dds.advance(localFrequency, cyclesPerTick);
+        if (0 == localFrequency)
         {
             planWaitUntilEndOfTick();
             return;
         }
 
-        bool isForward = localDDSaddValue > 0;
+        bool isForward = localFrequency > 0;
         if (currentDirection != isForward)
         {
             uint32_t wait = dirhold.remaining(plannedCycles);
@@ -228,13 +235,13 @@ private:
 
         while (tickCyclesRemaining() > 0)
         {
-            if (!dds.stepTriggered)
+            if (!dds.triggered())
             {
                 planWaitUntilEndOfTick();
                 continue;
             }
 
-            dds.stepped();
+            dds.reset();
             plan(0, true, currentDirection);
             if (isForward)
                 ++this->rawCount;
