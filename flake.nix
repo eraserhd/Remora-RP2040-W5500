@@ -30,6 +30,7 @@
             picotool
             python3
             pkg-config
+            lldb
           ];
 
           shellHook = ''
