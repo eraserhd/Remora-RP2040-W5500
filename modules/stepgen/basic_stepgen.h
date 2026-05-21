@@ -8,6 +8,30 @@
 #include "../../remora.h"
 #include "../module.h"
 
+struct DDSAccumulator
+{
+    uint32_t value;
+    bool stepTriggered;
+
+    static constexpr int stepBit = 31;
+
+
+    inline DDSAccumulator() : value(0), stepTriggered(false) {}
+
+    inline void advance(int32_t toAdd)
+    {
+        if (stepTriggered) return;
+        int32_t next = value + toAdd;
+        if ((next ^ value) & (1U << stepBit))
+            stepTriggered = true;
+        value = next;
+    }
+
+    // Acknowledge that the triggered step has been emitted.
+    inline void stepped() { stepTriggered = false; }
+};
+
+
 template<
     int32_t CpuFreq
   , int32_t ThreadFreq
@@ -65,29 +89,7 @@ class BasicStepgen
         }
     };
 
-    struct DDSAccumulator
-    {
-        uint32_t value;
-        bool stepTriggered;
-
-        inline DDSAccumulator() : value(0), stepTriggered(false) {}
-
-        inline void advance(int32_t toAdd)
-        {
-            if (stepTriggered) return;
-            int32_t next = value + toAdd;
-            if ((next ^ value) & (1U << stepBit))
-                stepTriggered = true;
-            value = next;
-        }
-
-        // Acknowledge that the triggered step has been emitted.
-        inline void stepped() { stepTriggered = false; }
-    };
-
 private:
-    static constexpr int stepBit = 31;
-
     int jointNumber;
     volatile int32_t rawCount;
     volatile int32_t DDSaddValue;
@@ -144,7 +146,7 @@ public:
         {
             printf("frequency %d exceeds maximum %d\n", frequency, maximumFrequency);
         }
-        DDSaddValue = frequency * ((float)(1U << stepBit) / (float)ThreadFreq);
+        DDSaddValue = frequency * ((float)(1U << DDSAccumulator::stepBit) / (float)ThreadFreq);
     }
 
     // Callable from core0, owing to rawCount volatility and it being the only
