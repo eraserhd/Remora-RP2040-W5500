@@ -320,6 +320,46 @@ public:
 
 // ---
 
+TEST(test_advancing_cyclesUntilNextStep_always_triggers)
+{
+    using DDS = BasicDDSAccumulator<75000>;
+    DDS dds;
+
+    const int32_t frequencies[] = {25, -25, 1, -1, 80000, -80000};
+
+    for (auto const f : frequencies)
+    for (int32_t value = DDS::low; value <= DDS::high; ++value)
+    {
+        dds.value = value;
+        assert(!dds.triggered());
+        int32_t cycles = dds.cyclesUntilNextStep(f);
+        dds.advance(f, cycles);
+        assert(dds.triggered());
+    }
+}
+
+TEST(test_advancing_less_than_cyclesUntilNextStep_never_triggers)
+{
+    using DDS = BasicDDSAccumulator<75000>;
+    DDS dds;
+
+    const int32_t frequencies[] = {25, -25, 1, -1, 80000, -80000};
+
+    for (auto const f : frequencies)
+    for (int32_t value = DDS::low; value <= DDS::high; ++value)
+    {
+        dds.value = value;
+        assert(!dds.triggered());
+        int32_t cycles = dds.cyclesUntilNextStep(f);
+        dds.advance(f, cycles-1);
+        assert(!dds.triggered());
+        dds.advance(f, 1);
+        assert(dds.triggered());
+    }
+}
+
+// ---
+
 TEST(test_disabled_joint_does_not_step)
 {
     Scenario()
@@ -454,6 +494,8 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
 
 int main()
 {
+    test_advancing_cyclesUntilNextStep_always_triggers();
+    test_advancing_less_than_cyclesUntilNextStep_never_triggers();
     test_disabled_joint_does_not_step();
     test_zero_frequency_does_not_step();
     test_half_rate_steps_every_two_updates();
