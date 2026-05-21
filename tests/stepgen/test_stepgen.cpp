@@ -38,17 +38,38 @@ struct TestIO
         bool dir;
     };
 
+    struct StateChange
+    {
+        bool step, dir;
+        uint32_t cycles;
+    };
+
     std::vector<Command> commands;
-    uint32_t cycleCounter = 0;
     int tick = 0;
 
     TestIO(std::string, std::string) {}
 
     uint32_t schedule(uint32_t cycles, bool step, bool dir)
     {
-        cycleCounter += cycles;
-        commands.push_back({tick, cycleCounter, step, dir});
+        commands.push_back({tick, cycles, step, dir});
         return cycles;
+    }
+
+    std::vector<StateChange> recordedStateChanges() const
+    {
+        std::vector<StateChange> result;
+        StateChange current{ false, false, 0 };
+        for (auto const& c : commands)
+        {
+            current.cycles += c.cycles;
+            if (current.step != c.step || current.dir != c.dir)
+            {
+                result.push_back(current);
+                current = {c.step, c.dir, 0};
+            }
+        }
+        result.push_back(current);
+        return result;
     }
 };
 
@@ -65,6 +86,11 @@ static const char* DIR_PIN  = "GP03";
 
 static const int32_t CPU_FREQ = 125000000;
 static const uint32_t CYCLES_PER_TICK = CPU_FREQ / THREAD_FREQ;
+
+constexpr uint32_t operator"" _ns(unsigned long long ns) { return uint64_t(CPU_FREQ)*ns/1000000000ULL; }
+constexpr uint32_t operator"" _Hz(unsigned long long hz) { return CPU_FREQ/hz; }
+constexpr uint32_t operator"" _KHz(unsigned long long khz) { return CPU_FREQ/(1000*khz); }
+constexpr uint32_t operator"" _tick(unsigned long long t) { return t*CYCLES_PER_TICK; }
 
 class TestStepgen : public BasicStepgen<CPU_FREQ, THREAD_FREQ, TestIO>
 {
@@ -271,26 +297,30 @@ public:
         return *this;
     }
 
-    Scenario& sentCommands(std::vector<ExpectedCommand> expected)
+    Scenario& outputsSignals(std::vector<TestIO::StateChange> expected)
     {
-        // Keep only commands that change pin state (or the very first one,
-        // which establishes initial state).
-        std::vector<TestIO::Command> actual;
-        for (auto const& c : stepgen->io().commands)
+        std::vector<TestIO::StateChange> actual = stepgen->io().recordedStateChanges();
+        if (actual.size() != expected.size())
         {
-            if (actual.empty() || c.step != actual.back().step || c.dir != actual.back().dir)
-                actual.push_back(c);
+            fail("produced wrong number of state changes (%u instead of %u)", actual.size(), expected.size());
+            return *this;
         }
-        bool ok = (actual.size() == expected.size());
-        for (size_t i = 0; ok && i < expected.size(); ++i)
+        for (size_t i = 0; i < expected.size(); ++i)
         {
             auto const& a = actual[i];
             auto const& e = expected[i];
             if (a.cycles != e.cycles || a.step != e.step || a.dir != e.dir)
-                ok = false;
+            {
+                fail(
+                    "state change %u mismatch: got step=%d (%d), dir=%d (%d), cycles=%u (%u)",
+                    i,
+                    a.step, e.step,
+                    a.dir, e.dir,
+                    a.cycles, e.cycles
+                );
+                return *this;
+            }
         }
-        if (!ok)
-            fail("produced the wrong calls");
         return *this;
     }
 };
@@ -362,11 +392,11 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withSteplen(50000)
         .withFrequency(25)
         .afterPulses(1)
-        .sentCommands({
-            {0,                      false, false},
-            {0,                      false, true},
-            {1600 * CYCLES_PER_TICK, true,  true},
-            {1602 * CYCLES_PER_TICK, false, true},
+        .outputsSignals({
+            { false, false,     0 },
+            { false,  true, 25_Hz },
+            {  true,  true,  6250 },
+            { false,  true,     0 },
         })
         .madePulsesOfLength(2 * CYCLES_PER_TICK)
         ;
@@ -378,13 +408,13 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withSteplen(50000)
         .withStepspace(50000)
         .withDirsetup(150000)
-        .withFrequency(THREAD_FREQ/4)
+        .withFrequency(10000)
         .afterPulses(1)
-        .sentCommands({
-            {0,                   false, false},
-            {0,                   false, true},
-            {6 * CYCLES_PER_TICK, true,  true},
-            {8 * CYCLES_PER_TICK, false, true},
+        .outputsSignals({
+            { false, false,         0 },
+            { false,  true, 150000_ns },
+            {  true,  true,  50000_ns },
+            { false,  true,         0 },
         });
 }
 
@@ -399,13 +429,13 @@ TEST(test_waits_dirhold_before_changing_direction)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
-        .sentCommands({
-            { 0,                    false, false},
-            { 0,                    true,  false},
-            { 2 * CYCLES_PER_TICK,  false, false},
-            { 8 * CYCLES_PER_TICK,  false, true},
-            {11 * CYCLES_PER_TICK,  true,  true},
-            {13 * CYCLES_PER_TICK,  false, true},
+        .outputsSignals({
+            { false, false,         0 },
+            {  true, false,  50000_ns },
+            { false, false, 150000_ns },
+            { false,  true,  75000_ns },
+            {  true,  true,  50000_ns },
+            { false,  true,         0 },
         });
 }
 
@@ -419,13 +449,13 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
-        .sentCommands({
-            {0,                   false, false},
-            {0,                   true,  false},
-            {2 * CYCLES_PER_TICK, false, false},
-            {3 * CYCLES_PER_TICK, false, true},
-            {6 * CYCLES_PER_TICK, true,  true},
-            {8 * CYCLES_PER_TICK, false, true},
+        .outputsSignals({
+            { false, false,                             0 },
+            {  true, false,                      50000_ns },
+            { false, false,                        1_tick },
+            { false,  true, 150000_ns - 50000_ns - 1_tick },
+            {  true,  true,                      50000_ns },
+            { false,  true,                             0 },
         });
 }
 
