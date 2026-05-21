@@ -297,7 +297,7 @@ public:
         return *this;
     }
 
-    Scenario& outputsSignals(std::vector<TestIO::StateChange> expected)
+    Scenario& outputsStepAndDir(std::vector<TestIO::StateChange> expected)
     {
         std::vector<TestIO::StateChange> actual = stepgen->io().recordedStateChanges();
         if (actual.size() != expected.size())
@@ -392,7 +392,7 @@ TEST(test_steplen_greater_than_frequency_keeps_pulse_high_for_multiple_ticks)
         .withSteplen(50000)
         .withFrequency(25)
         .afterPulses(1)
-        .outputsSignals({
+        .outputsStepAndDir({
             { false, false,     0 },
             { false,  true, 25_Hz },
             {  true,  true,  6250 },
@@ -410,7 +410,7 @@ TEST(test_waits_dirsetup_before_pulsing)
         .withDirsetup(150000)
         .withFrequency(10000)
         .afterPulses(1)
-        .outputsSignals({
+        .outputsStepAndDir({
             { false, false,         0 },
             { false,  true, 150000_ns },
             {  true,  true,  50000_ns },
@@ -429,7 +429,7 @@ TEST(test_waits_dirhold_before_changing_direction)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
-        .outputsSignals({
+        .outputsStepAndDir({
             { false, false,         0 },
             {  true, false,  50000_ns },
             { false, false, 150000_ns },
@@ -449,7 +449,7 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
-        .outputsSignals({
+        .outputsStepAndDir({
             { false, false,                             0 },
             {  true, false,                      50000_ns },
             { false, false,                        1_tick },
