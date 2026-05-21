@@ -76,7 +76,7 @@ class BasicStepgen
         {
             if (stepTriggered) return;
             int32_t next = value + toAdd;
-            if ((next ^ value) & (1U << StepBit))
+            if ((next ^ value) & (1U << stepBit))
                 stepTriggered = true;
             value = next;
         }
@@ -86,7 +86,7 @@ class BasicStepgen
     };
 
 private:
-    static constexpr int StepBit = 31;
+    static constexpr int stepBit = 31;
 
     int jointNumber;
     volatile int32_t rawCount;
@@ -144,7 +144,7 @@ public:
         {
             printf("frequency %d exceeds maximum %d\n", frequency, maximumFrequency);
         }
-        DDSaddValue = frequency * ((float)(1U << StepBit) / (float)ThreadFreq);
+        DDSaddValue = frequency * ((float)(1U << stepBit) / (float)ThreadFreq);
     }
 
     // Callable from core0, owing to rawCount volatility and it being the only
