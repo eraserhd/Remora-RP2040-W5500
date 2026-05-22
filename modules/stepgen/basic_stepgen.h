@@ -159,9 +159,6 @@ public:
 
     virtual void update() override
     {
-        dirhold.update(plannedCycles);
-        dirsetup.update(plannedCycles);
-        dirdelay.update(plannedCycles);
         changePins();
         tickStartCycle += cyclesPerTick;
     }
@@ -172,6 +169,9 @@ private:
         uint32_t actual = IOType::schedule(cycles, step, dir);
         plannedCycles += actual;
         dds.advance(localFrequency, actual);
+        dirhold.update(plannedCycles);
+        dirsetup.update(plannedCycles);
+        dirdelay.update(plannedCycles);
     }
 
     inline int32_t tickCyclesRemaining() const
