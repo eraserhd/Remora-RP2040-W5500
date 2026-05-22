@@ -162,6 +162,8 @@ public:
         localFrequency = frequency;
         if (localFrequency != 0)
         {
+            planDirectionChange();
+            planDirectionHolds();
             planSteps();
         }
         planWaitUntilEndOfTick();
@@ -234,9 +236,6 @@ private:
 
     inline void planSteps()
     {
-        planDirectionChange();
-        planDirectionHolds();
-
         for (int32_t nextStep = dds.cyclesUntilNextStep(localFrequency);
              nextStep < tickCyclesRemaining();
              nextStep = dds.cyclesUntilNextStep(localFrequency))
