@@ -417,7 +417,7 @@ TEST(test_steplen_greater_than_thread_frequency_keeps_pulse_high_for_multiple_ti
         .afterPulses(1)
         .outputsStepAndDir({
             { false, false,        0 },
-            { false,  true,  25_Hz/2 }, //???
+            { false,  true,  25_Hz/2 + 1 }, //???
             {  true,  true, 50000_ns },
             { false,  true,        0 },
         })
@@ -448,12 +448,12 @@ TEST(test_waits_dirhold_before_changing_direction)
         .withStepspace(50000)
         .withDirsetup(75000)
         .withDirhold(150000)
-        .withFrequency(-THREAD_FREQ/4)
+        .withFrequency(-10000)
         .afterPulses(1)
         .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
         .outputsStepAndDir({
-            { false, false,    1_tick }, //???
+            { false, false,  10_KHz/2 },
             {  true, false,  50000_ns },
             { false, false, 150000_ns },
             { false,  true,  75000_ns },
@@ -473,7 +473,7 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
         .withFrequency(THREAD_FREQ/4)
         .afterPulses(1)
         .outputsStepAndDir({
-            { false, false,                        1_tick }, //???
+            { false, false,                      10_KHz/2 },
             {  true, false,                      50000_ns },
             { false, false,                        1_tick },
             { false,  true, 150000_ns - 50000_ns - 1_tick },

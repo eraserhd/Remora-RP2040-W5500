@@ -41,7 +41,6 @@ struct BasicDDSAccumulator
     }
 };
 
-
 template<
     int32_t CpuFreq
   , int32_t ThreadFreq
@@ -170,7 +169,9 @@ public:
 private:
     inline void plan(uint32_t cycles, bool step, bool dir)
     {
-        plannedCycles += IOType::schedule(cycles, step, dir);
+        uint32_t actual = IOType::schedule(cycles, step, dir);
+        plannedCycles += actual;
+        dds.advance(localFrequency, actual);
     }
 
     inline int32_t tickCyclesRemaining() const
@@ -198,7 +199,6 @@ private:
     void changePins()
     {
         localFrequency = frequency;
-        dds.advance(localFrequency, cyclesPerTick);
         if (0 == localFrequency)
         {
             planWaitUntilEndOfTick();
@@ -228,16 +228,12 @@ private:
         if (dirwait > 0)
             planEvitableWait(dirwait);
 
-        while (tickCyclesRemaining() > 0)
+        for (int32_t nextStep = dds.cyclesUntilNextStep(localFrequency);
+             nextStep < tickCyclesRemaining();
+             nextStep = dds.cyclesUntilNextStep(localFrequency))
         {
-            if (!dds.triggered())
-            {
-                planWaitUntilEndOfTick();
-                continue;
-            }
-
+            plan(nextStep, true, currentDirection);
             dds.reset();
-            plan(0, true, currentDirection);
             if (isForward)
                 ++this->rawCount;
             else
@@ -246,8 +242,9 @@ private:
             dirdelay.start(plannedCycles);
             plan(steplenCycles, false, currentDirection);
             dirhold.start(plannedCycles);
-            planWaitUntilEndOfTick(); //FIXME:
         }
+
+        planWaitUntilEndOfTick();
     }
 };
 
