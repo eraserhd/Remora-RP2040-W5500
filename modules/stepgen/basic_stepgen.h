@@ -222,11 +222,11 @@ private:
             dirsetup.start(plannedCycles);
         }
 
-        if (dirsetup.remaining(plannedCycles))
-            planEvitableWait(dirsetup.remaining(plannedCycles));
-
-        if (dirdelay.remaining(plannedCycles) && isForward != lastPulseWasForward)
-            planEvitableWait(dirdelay.remaining(plannedCycles));
+        uint32_t dirwait = dirsetup.remaining(plannedCycles);
+        if (isForward != lastPulseWasForward)
+            dirwait = std::max(dirwait, dirdelay.remaining(plannedCycles));
+        if (dirwait > 0)
+            planEvitableWait(dirwait);
 
         while (tickCyclesRemaining() > 0)
         {
