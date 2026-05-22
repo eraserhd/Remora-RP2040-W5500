@@ -160,7 +160,10 @@ public:
     virtual void update() override
     {
         localFrequency = frequency;
-        planSteps();
+        if (localFrequency != 0)
+        {
+            planSteps();
+        }
         planWaitUntilEndOfTick();
         tickStartCycle += cyclesPerTick;
     }
@@ -212,11 +215,8 @@ private:
             planEvitableWait(dirwait);
     }
 
-    void planSteps()
+    inline void planSteps()
     {
-        if (0 == localFrequency)
-            return;
-
         if (currentDirection != isForward())
         {
             uint32_t wait = dirhold.remaining(plannedCycles);
