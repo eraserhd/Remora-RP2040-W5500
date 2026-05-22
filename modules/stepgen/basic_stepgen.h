@@ -233,18 +233,21 @@ private:
         for (int32_t nextStep = dds.cyclesUntilNextStep(localFrequency);
              nextStep < tickCyclesRemaining();
              nextStep = dds.cyclesUntilNextStep(localFrequency))
-        {
-            plan(nextStep, true, currentDirection);
-            dds.reset();
-            if (isForward())
-                ++this->rawCount;
-            else
-                --this->rawCount;
-            lastPulseWasForward = isForward();
-            dirdelay.start(plannedCycles);
-            plan(steplenCycles, false, currentDirection);
-            dirhold.start(plannedCycles);
-        }
+            planStep(nextStep);
+    }
+
+    inline void planStep(int32_t nextStep)
+    {
+        plan(nextStep, true, currentDirection);
+        dds.reset();
+        if (isForward())
+            ++this->rawCount;
+        else
+            --this->rawCount;
+        lastPulseWasForward = isForward();
+        dirdelay.start(plannedCycles);
+        plan(steplenCycles, false, currentDirection);
+        dirhold.start(plannedCycles);
     }
 };
 
