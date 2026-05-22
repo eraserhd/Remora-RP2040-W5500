@@ -159,7 +159,10 @@ public:
 
     virtual void update() override
     {
+        // Cache volatile frequency locally so it doesn't change during the
+        // planning tick.
         localFrequency = frequency;
+
         if (localFrequency != 0)
         {
             planDirectionChange();
