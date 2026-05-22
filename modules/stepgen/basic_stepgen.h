@@ -208,19 +208,19 @@ private:
 
     inline void planDirectionChange()
     {
-        if (currentDirection != isForward())
-        {
-            uint32_t wait = dirhold.remaining(plannedCycles);
-            if (wait > tickCyclesRemaining())
-            {
-                planWaitUntilEndOfTick();
-                return;
-            }
+        if (currentDirection == isForward())
+            return;
 
-            currentDirection = isForward();
-            plan(wait, false, currentDirection);
-            dirsetup.start(plannedCycles);
+        uint32_t wait = dirhold.remaining(plannedCycles);
+        if (wait > tickCyclesRemaining())
+        {
+            planWaitUntilEndOfTick();
+            return;
         }
+
+        currentDirection = isForward();
+        plan(wait, false, currentDirection);
+        dirsetup.start(plannedCycles);
     }
 
     inline void planDirectionHolds()
