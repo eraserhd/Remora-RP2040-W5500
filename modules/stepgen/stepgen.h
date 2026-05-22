@@ -11,27 +11,6 @@
 
 #include "basic_stepgen.h"
 
-class PinIO
-{
-private:
-    Pin *stepPin;
-    Pin *dirPin;
-
-public:
-    PinIO(std::string const& step, std::string const& direction)
-        : stepPin(new Pin(step, OUTPUT))
-        , dirPin(new Pin(direction, OUTPUT))
-    {
-    }
-
-    inline uint32_t schedule(uint32_t cycles, bool step, bool dir)
-    {
-        stepPin->set(step);
-        dirPin->set(dir);
-        return 0;
-    }
-};
-
 class PIOIO
 {
 private:
