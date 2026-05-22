@@ -160,6 +160,7 @@ public:
     virtual void update() override
     {
         changePins();
+        planWaitUntilEndOfTick();
         tickStartCycle += cyclesPerTick;
     }
 
@@ -200,22 +201,14 @@ private:
     {
         localFrequency = frequency;
         if (0 == localFrequency)
-        {
-            planWaitUntilEndOfTick();
             return;
-        }
 
         bool isForward = localFrequency > 0;
         if (currentDirection != isForward)
         {
             uint32_t wait = dirhold.remaining(plannedCycles);
             if (wait > tickCyclesRemaining())
-            {
-                // LinuxCNC might change its mind about direction before
-                // we get there.
-                planWaitUntilEndOfTick();
                 return;
-            }
 
             currentDirection = isForward;
             plan(wait, false, currentDirection);
@@ -243,8 +236,6 @@ private:
             plan(steplenCycles, false, currentDirection);
             dirhold.start(plannedCycles);
         }
-
-        planWaitUntilEndOfTick();
     }
 };
 
