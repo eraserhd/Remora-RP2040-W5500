@@ -266,26 +266,16 @@ public:
 
     Scenario& madePulsesOfLength(uint32_t length)
     {
-        int n = 0;
-        uint32_t riseCycles = 0;
-        bool prevStep = false;
-        for (auto const& c : stepgen->io().commands)
+        int32_t n = 0;
+        for (auto const& c : stepgen->io().recordedStateChanges())
         {
-            if (c.step && !prevStep)
+            if (!c.step) continue;
+            if (c.cycles != length)
             {
-                riseCycles = c.cycles;
+                fail("pulse %d had length %u (expected length %u).", n, c.cycles, length);
+                return *this;
             }
-            else if (!c.step && prevStep)
-            {
-                uint32_t actualLength = c.cycles - riseCycles;
-                if (actualLength != length)
-                {
-                    fail("pulse %d had length %u (expected length %u).", n, actualLength, length);
-                    return *this;
-                }
-                ++n;
-            }
-            prevStep = c.step;
+            ++n;
         }
         return *this;
     }
