@@ -82,20 +82,13 @@ class BasicStepgen
 
         inline uint32_t remaining(uint32_t now) const
         {
-            if (!armed) return 0;
-            return std::max(int32_t(0), int32_t(expiryCycle - now));
+            return armed ? std::max(int32_t(0), int32_t(expiryCycle - now)) : 0;
         }
 
-        inline bool active(uint32_t now) const
-        {
-            return armed && remaining(now);
-        }
+        inline bool active(uint32_t now) const { return armed && remaining(now); }
 
         // Disarm if expired, so we don't spuriously show armed on next cycle.
-        inline void update(uint32_t now)
-        {
-            if (!active(now)) armed = false;
-        }
+        inline void update(uint32_t now) { if (!active(now)) armed = false; }
     };
 
     using DDSAccumulator = BasicDDSAccumulator<CpuFreq>;
