@@ -174,7 +174,7 @@ public:
     }
 
 private:
-    inline void plan(uint32_t cycles, bool step, bool dir)
+    inline void planWaitThenSetPins(uint32_t cycles, bool step, bool dir)
     {
         uint32_t actual = IOType::schedule(cycles, step, dir);
         plannedCycles += actual;
@@ -194,7 +194,7 @@ private:
     {
         int32_t toWait = tickCyclesRemaining();
         if (toWait > 0)
-            plan(toWait, false, currentDirection);
+            planWaitThenSetPins(toWait, false, currentDirection);
     }
 
     // Wait for cycles, but not past the end of the tick in case we
@@ -203,7 +203,7 @@ private:
     {
         int32_t remaining = tickCyclesRemaining();
         if (remaining <= 0) return;
-        plan(std::min(cycles, uint32_t(remaining)), false, currentDirection);
+        planWaitThenSetPins(std::min(cycles, uint32_t(remaining)), false, currentDirection);
     }
 
     inline bool isForward() const
@@ -224,7 +224,7 @@ private:
         }
 
         currentDirection = isForward();
-        plan(wait, false, currentDirection);
+        planWaitThenSetPins(wait, false, currentDirection);
         dirsetup.start(plannedCycles);
     }
 
@@ -247,7 +247,7 @@ private:
 
     inline void planStep(int32_t nextStep)
     {
-        plan(nextStep, true, currentDirection);
+        planWaitThenSetPins(nextStep, true, currentDirection);
         dds.reset();
         if (isForward())
             ++this->rawCount;
@@ -255,7 +255,7 @@ private:
             --this->rawCount;
         lastPulseWasForward = isForward();
         dirdelay.start(plannedCycles);
-        plan(steplenCycles, false, currentDirection);
+        planWaitThenSetPins(steplenCycles, false, currentDirection);
         dirhold.start(plannedCycles);
     }
 };
