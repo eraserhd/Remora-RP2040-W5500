@@ -159,6 +159,7 @@ public:
 
     virtual void update() override
     {
+        localFrequency = frequency;
         planSteps();
         planWaitUntilEndOfTick();
         tickStartCycle += cyclesPerTick;
@@ -213,7 +214,6 @@ private:
 
     void planSteps()
     {
-        localFrequency = frequency;
         if (0 == localFrequency)
             return;
 
