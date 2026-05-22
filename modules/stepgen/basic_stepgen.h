@@ -159,7 +159,7 @@ public:
 
     virtual void update() override
     {
-        changePins();
+        planSteps();
         planWaitUntilEndOfTick();
         tickStartCycle += cyclesPerTick;
     }
@@ -197,7 +197,7 @@ private:
         plan(std::min(cycles, uint32_t(remaining)), false, currentDirection);
     }
 
-    void changePins()
+    void planSteps()
     {
         localFrequency = frequency;
         if (0 == localFrequency)
