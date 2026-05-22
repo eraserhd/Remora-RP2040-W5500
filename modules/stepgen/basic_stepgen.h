@@ -197,26 +197,30 @@ private:
         plan(std::min(cycles, uint32_t(remaining)), false, currentDirection);
     }
 
+    inline bool isForward() const
+    {
+        return localFrequency > 0;
+    }
+
     void planSteps()
     {
         localFrequency = frequency;
         if (0 == localFrequency)
             return;
 
-        bool isForward = localFrequency > 0;
-        if (currentDirection != isForward)
+        if (currentDirection != isForward())
         {
             uint32_t wait = dirhold.remaining(plannedCycles);
             if (wait > tickCyclesRemaining())
                 return;
 
-            currentDirection = isForward;
+            currentDirection = isForward();
             plan(wait, false, currentDirection);
             dirsetup.start(plannedCycles);
         }
 
         uint32_t dirwait = dirsetup.remaining(plannedCycles);
-        if (isForward != lastPulseWasForward)
+        if (isForward() != lastPulseWasForward)
             dirwait = std::max(dirwait, dirdelay.remaining(plannedCycles));
         if (dirwait > 0)
             planEvitableWait(dirwait);
@@ -227,11 +231,11 @@ private:
         {
             plan(nextStep, true, currentDirection);
             dds.reset();
-            if (isForward)
+            if (isForward())
                 ++this->rawCount;
             else
                 --this->rawCount;
-            lastPulseWasForward = isForward;
+            lastPulseWasForward = isForward();
             dirdelay.start(plannedCycles);
             plan(steplenCycles, false, currentDirection);
             dirhold.start(plannedCycles);
