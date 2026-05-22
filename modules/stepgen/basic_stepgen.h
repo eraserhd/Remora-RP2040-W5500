@@ -85,10 +85,8 @@ class BasicStepgen
             return armed ? std::max(int32_t(0), int32_t(expiryCycle - now)) : 0;
         }
 
-        inline bool active(uint32_t now) const { return armed && remaining(now); }
-
         // Disarm if expired, so we don't spuriously show armed on next cycle.
-        inline void update(uint32_t now) { if (!active(now)) armed = false; }
+        inline void update(uint32_t now) { if (!remaining(now)) armed = false; }
     };
 
     using DDSAccumulator = BasicDDSAccumulator<CpuFreq>;
@@ -224,10 +222,10 @@ private:
             dirsetup.start(plannedCycles);
         }
 
-        if (dirsetup.active(plannedCycles))
+        if (dirsetup.remaining(plannedCycles))
             planEvitableWait(dirsetup.remaining(plannedCycles));
 
-        if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
+        if (dirdelay.remaining(plannedCycles) && isForward != lastPulseWasForward)
             planEvitableWait(dirdelay.remaining(plannedCycles));
 
         while (tickCyclesRemaining() > 0)
