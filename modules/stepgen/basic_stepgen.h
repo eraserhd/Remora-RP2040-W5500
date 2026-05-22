@@ -93,7 +93,7 @@ private:
     volatile int32_t frequency;
     int32_t localFrequency;
     DDSAccumulator dds;
-    uint32_t tickStartCycle;
+    uint32_t tickEndCycle;
     uint32_t plannedCycles;
     uint32_t steplenCycles;
     int32_t maximumFrequency;
@@ -118,7 +118,7 @@ public:
       , rawCount(0)
       , frequency(0)
       , localFrequency(0)
-      , tickStartCycle(0)
+      , tickEndCycle(0)
       , plannedCycles(0)
       , steplenCycles(nsToCycles(steplenNs))
       , maximumFrequency(CpuFreq / nsToCycles(steplenNs + stepspaceNs))
@@ -159,6 +159,7 @@ public:
         // Cache volatile frequency locally so it doesn't change during the
         // planning tick.
         localFrequency = frequency;
+        tickEndCycle += cyclesPerTick;
 
         if (localFrequency != 0)
         {
@@ -167,7 +168,6 @@ public:
             planSteps();
         }
         planWaitUntilEndOfTick();
-        tickStartCycle += cyclesPerTick;
     }
 
 private:
@@ -183,8 +183,7 @@ private:
 
     inline int32_t tickCyclesRemaining() const
     {
-        uint32_t nextCycles = tickStartCycle + cyclesPerTick;
-        return int32_t(nextCycles - plannedCycles);
+        return int32_t(tickEndCycle - plannedCycles);
     }
 
     inline void planWaitUntilEndOfTick()
