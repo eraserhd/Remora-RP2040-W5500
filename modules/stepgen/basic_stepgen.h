@@ -8,6 +8,9 @@
 #include "../../remora.h"
 #include "../module.h"
 
+// A DDS accumulator which can also be queried for how many cycles until the
+// next trigger.  When triggered, it stops advancing and stays triggered, which
+// is used to wait out dirhold and dirsetup and such.
 template<int32_t Dx>
 struct BasicDDSAccumulator
 {
@@ -38,6 +41,14 @@ struct BasicDDSAccumulator
     }
 };
 
+// A step generator which schedules pin changes in terms of cycles.  It tracks
+// how far into the future it has scheduled, and schedules until at least until
+// the next base thread tick so that it can keep the TX command queue full.
+//
+// For actual steps, the step high and low are scheduled right away, as nothing
+// else can happen in between.  This can overschedule us a bit, but that's OK.
+// For "evitable" events, we only schedule to the beginning of the next tick
+// in case we receive new frequency commands in the mean time.
 template<
     int32_t CpuFreq
   , int32_t ThreadFreq
@@ -57,6 +68,16 @@ class BasicStepgen
             : cyclesPerTick;
     }
 
+    // CycleCounter is used to track expiration time for various events like
+    // dirhold and dirsetup.  It wraps every thirty-some seconds, but is
+    // modelled after Linux jiffies, so that it will work correctly when it
+    // wraps.
+    //
+    // It doesn't own the time, which is why now is passed to start() and
+    // remaining(), but this value must be monotonically increasing.
+    //
+    // We must call update() periodically to disarm expired timers to prevent
+    // them from being active again when our time wraps.
     struct CycleCounter
     {
         uint32_t durationCycles;
@@ -160,6 +181,9 @@ public:
         // planning tick.
         localFrequency = frequency;
         tickEndCycle += cyclesPerTick;
+        dirhold.update(plannedCycles);
+        dirsetup.update(plannedCycles);
+        dirdelay.update(plannedCycles);
 
         if (localFrequency != 0)
         {
@@ -176,9 +200,6 @@ private:
         uint32_t actual = IOType::schedule(cycles, step, dir);
         plannedCycles += actual;
         dds.advance(localFrequency, actual);
-        dirhold.update(plannedCycles);
-        dirsetup.update(plannedCycles);
-        dirdelay.update(plannedCycles);
     }
 
     inline int32_t tickCyclesRemaining() const
