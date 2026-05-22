@@ -232,10 +232,10 @@ private:
         }
 
         if (dirsetup.active(plannedCycles))
-            planEvitableWait(dirsetup.durationCycles);
+            planEvitableWait(dirsetup.remaining(plannedCycles));
 
         if (dirdelay.active(plannedCycles) && isForward != lastPulseWasForward)
-            planEvitableWait(dirdelay.durationCycles);
+            planEvitableWait(dirdelay.remaining(plannedCycles));
 
         while (tickCyclesRemaining() > 0)
         {
