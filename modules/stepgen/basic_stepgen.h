@@ -80,22 +80,21 @@ class BasicStepgen
             armed = true;
         }
 
-        inline int32_t remaining(uint32_t now) const
+        inline uint32_t remaining(uint32_t now) const
         {
             if (!armed) return 0;
-            return int32_t(now - expiryCycle);
+            return std::max(int32_t(0), int32_t(expiryCycle - now));
+        }
+
+        inline bool active(uint32_t now) const
+        {
+            return armed && remaining(now);
         }
 
         // Disarm if expired, so we don't spuriously show armed on next cycle.
         inline void update(uint32_t now)
         {
-            if (armed && remaining(now) >= 0)
-                armed = false;
-        }
-
-        inline bool active(uint32_t now) const
-        {
-            return armed && remaining(now) < 0;
+            if (!active(now)) armed = false;
         }
     };
 
