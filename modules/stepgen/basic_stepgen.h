@@ -35,9 +35,9 @@ struct BasicDDSAccumulator
         if (triggered()) return 0;
         if (freq == 0) return INT32_MAX;
         if (freq > 0)
-            return ((high + 1 - value) + (2*freq - 1)) / (2*freq);
+            return 1 + (high - value) / (2*freq);
         else
-            return ((value - (low - 1)) + (-2*freq - 1)) / (-2*freq);
+            return 1 + (low - value) / (2*freq);
     }
 };
 
