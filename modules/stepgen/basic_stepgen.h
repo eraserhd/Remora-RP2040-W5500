@@ -206,6 +206,23 @@ private:
         return localFrequency > 0;
     }
 
+    inline void planDirectionChange()
+    {
+        if (currentDirection != isForward())
+        {
+            uint32_t wait = dirhold.remaining(plannedCycles);
+            if (wait > tickCyclesRemaining())
+            {
+                planWaitUntilEndOfTick();
+                return;
+            }
+
+            currentDirection = isForward();
+            plan(wait, false, currentDirection);
+            dirsetup.start(plannedCycles);
+        }
+    }
+
     inline void planDirectionHolds()
     {
         uint32_t dirwait = dirsetup.remaining(plannedCycles);
@@ -217,17 +234,7 @@ private:
 
     inline void planSteps()
     {
-        if (currentDirection != isForward())
-        {
-            uint32_t wait = dirhold.remaining(plannedCycles);
-            if (wait > tickCyclesRemaining())
-                return;
-
-            currentDirection = isForward();
-            plan(wait, false, currentDirection);
-            dirsetup.start(plannedCycles);
-        }
-
+        planDirectionChange();
         planDirectionHolds();
 
         for (int32_t nextStep = dds.cyclesUntilNextStep(localFrequency);
