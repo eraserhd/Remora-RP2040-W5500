@@ -43,8 +43,7 @@ void pruThread::run(void)
         gpio_put(27, 1);
     }
 
-    // iterate over the Thread pointer vector to run all instances of Module::runModule()
-    for (iter = vThread.begin(); iter != vThread.end(); ++iter) (*iter)->runModule();
+    for (auto& m : vThread) m->runModule();
 
     if (this->slice == 1){
         gpio_put(27, 0);

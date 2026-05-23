@@ -20,7 +20,6 @@ private:
     uint32_t                        frequency;
 
     vector<Module*> vThread;                // vector containing pointers to Thread modules
-    vector<Module*>::iterator iter;
 
 public:
     bool                            execute;
