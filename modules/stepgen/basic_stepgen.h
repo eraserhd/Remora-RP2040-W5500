@@ -52,26 +52,26 @@ struct BasicDDSAccumulator
 // them from being active again when our time wraps.
 struct CycleCounter
 {
-    uint32_t durationCycles;
-    uint32_t expiryCycle;
+    uint32_t duration;
+    uint32_t expiry;
     bool armed;
 
     inline CycleCounter(uint32_t duration)
-        : durationCycles(duration)
-        , expiryCycle(0)
+        : duration(duration)
+        , expiry(0)
         , armed(false)
     {
     }
 
     inline void start(uint32_t now)
     {
-        expiryCycle = now + durationCycles;
+        expiry = now + duration;
         armed = true;
     }
 
     inline uint32_t remaining(uint32_t now) const
     {
-        return armed ? std::max(int32_t(0), int32_t(expiryCycle - now)) : 0;
+        return armed ? std::max(int32_t(0), int32_t(expiry - now)) : 0;
     }
 
     // Disarm if expired, so we don't spuriously show armed on next cycle.
