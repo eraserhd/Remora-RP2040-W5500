@@ -40,13 +40,6 @@ void pruThread::registerModule(Module* module)
 }
 
 
-void pruThread::registerModulePost(Module* module)
-{
-	this->vThreadPost.push_back(module);
-	this->hasThreadPost = true;
-}
-
-
 void pruThread::run(void)
 {
 
