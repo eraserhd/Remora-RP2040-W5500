@@ -83,8 +83,8 @@ class BasicStepgen
         uint32_t expiryCycle;
         bool armed;
 
-        inline CycleCounter(int32_t ns)
-            : durationCycles(nsToCycles(ns))
+        inline CycleCounter(uint32_t duration)
+            : durationCycles(duration)
             , expiryCycle(0)
             , armed(false)
         {
@@ -142,9 +142,9 @@ public:
       , plannedCycles(0)
       , steplenCycles(nsToCycles(steplenNs))
       , maximumFrequency(CpuFreq / nsToCycles(steplenNs + stepspaceNs))
-      , dirsetup(dirsetupNs)
-      , dirhold(dirholdNs)
-      , dirdelay(dirdelayNs)
+      , dirsetup(nsToCycles(dirsetupNs))
+      , dirhold(nsToCycles(dirholdNs))
+      , dirdelay(nsToCycles(dirdelayNs))
       , lastPulseWasForward(false)
       , currentDirection(false)
     {
