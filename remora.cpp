@@ -105,7 +105,6 @@ enum State {
 };
 
 uint8_t resetCnt;
-uint32_t servo_freq = PRU_SERVOFREQ;
 
 // boolean
 volatile bool PRUreset;
@@ -321,31 +320,6 @@ void deserialiseJSON()
 }
 
 
-void configThreads()
-{
-    if (configError) return;
-
-    printf("\n3. Configuring threads\n");
-
-    JsonArray Threads = doc["Threads"];
-
-    // create objects from JSON data
-    for (JsonArray::iterator it=Threads.begin(); it!=Threads.end(); ++it)
-    {
-        thread = *it;
-
-        const char* configor = thread["Thread"];
-        uint32_t    freq = thread["Frequency"];
-
-        if (!strcmp(configor,"Servo"))
-        {
-            servo_freq = freq;
-            printf("Setting SERVO thread frequency to %d\n", servo_freq);
-        }
-    }
-}
-
-
 void loadModules()
 {
     printf("\n4. Loading modules\n");
@@ -444,7 +418,6 @@ void core1_entry()
 
                 jsonFromFlash();
                 deserialiseJSON();
-                configThreads();
                 createThreads();
                 //debugThreadHigh();
                 loadModules();

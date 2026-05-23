@@ -8,8 +8,6 @@
 #include "thread/pruThread.h"
 
 
-extern uint32_t servo_freq;
-
 extern JsonObject module;
 
 // pointers to objects with global scope
