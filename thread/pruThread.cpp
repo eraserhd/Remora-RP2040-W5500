@@ -25,7 +25,7 @@ pruThread::pruThread(uint8_t slice, uint32_t frequency) :
 
 void pruThread::startThread(void)
 {
-    TimerPtr = new pruTimer(this->slice, this->frequency, this);
+    TimerPtr = new pruTimer(this->slice, this);
 }
 
 void pruThread::registerModule(Module* module)

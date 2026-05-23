@@ -14,9 +14,8 @@ extern "C" void PWM_Wrap_Handler0();
 extern "C" void PWM_Wrap_Handler1();
 
 // Timer constructor
-pruTimer::pruTimer(uint8_t slice, uint32_t frequency, pruThread* ownerPtr):
+pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr):
     slice(slice),
-    frequency(frequency),
     timerOwnerPtr(ownerPtr)
 {
     interruptPtr = new TimerInterrupt(this->slice, this);   // Instantiate a new Timer Interrupt object and pass "this" pointer
