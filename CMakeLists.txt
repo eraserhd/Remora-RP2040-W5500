@@ -142,9 +142,6 @@ add_executable(remora
         remora.cpp
         tftpserver.cpp
         #boardconfig.cpp
-        ${CMAKE_SOURCE_DIR}/interrupt/interrupt.cpp
-        ${CMAKE_SOURCE_DIR}/thread/timerInterrupt.cpp
-        ${CMAKE_SOURCE_DIR}/thread/timer.cpp
         ${CMAKE_SOURCE_DIR}/thread/pruThread.cpp
         ${CMAKE_SOURCE_DIR}/drivers/pin/pin.cpp
         ${CMAKE_SOURCE_DIR}/modules/module.cpp
