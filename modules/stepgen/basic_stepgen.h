@@ -50,12 +50,14 @@ struct BasicDDSAccumulator
 //
 // We must call update() periodically to disarm expired timers to prevent
 // them from being active again when our time wraps.
-struct CycleCounter
+class CycleCounter
 {
+private:
     uint32_t duration;
     uint32_t expiry;
     bool armed;
 
+public:
     inline CycleCounter(uint32_t duration)
         : duration(duration)
         , expiry(0)
