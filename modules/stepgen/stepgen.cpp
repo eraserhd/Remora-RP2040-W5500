@@ -83,7 +83,6 @@ Stepgen *createStepgen()
     const char* comment = module["Comment"];
     printf("\n%s\n",comment);
 
-    int joint = module["Joint Number"];
     const char* step = module["Step Pin"];
     const char* dir = module["Direction Pin"];
 
@@ -93,14 +92,9 @@ Stepgen *createStepgen()
     float dirhold = module["dirhold"];
     float dirdelay = module["dirdelay"];
 
-    // configure pointers to data source and feedback location
-    //ptrJointFreqCmd[joint] = &rxData.jointFreqCmd[joint];
-    //ptrJointFeedback[joint] = &txData.jointFeedback[joint];
-    //ptrJointEnable = &rxData.jointEnable;
-
     // create the step generator, register it in the thread
     Stepgen* stepgen = new Stepgen(
-        joint, step, dir, steplen, stepspace,
+        step, dir, steplen, stepspace,
         dirsetup, dirhold, dirdelay
     );
     baseThread->registerModule(stepgen);

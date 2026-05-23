@@ -113,7 +113,6 @@ class BasicStepgen
     using DDSAccumulator = BasicDDSAccumulator<CpuFreq>;
 
 private:
-    int jointNumber;
     volatile int32_t rawCount;
     volatile int32_t frequency;
     int32_t localFrequency;
@@ -130,7 +129,6 @@ private:
 
 public:
     BasicStepgen(
-        int jointNumber,
         std::string step,
         std::string direction,
         int32_t steplenNs,
@@ -139,7 +137,6 @@ public:
         int32_t dirholdNs,
         int32_t dirdelayNs
     ) : IOType(step, direction)
-      , jointNumber(jointNumber)
       , rawCount(0)
       , frequency(0)
       , localFrequency(0)

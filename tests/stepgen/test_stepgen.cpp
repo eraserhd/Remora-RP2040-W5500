@@ -106,7 +106,7 @@ private:
     void start()
     {
         if (!stepgen.has_value())
-            stepgen.emplace(0, STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
+            stepgen.emplace(STEP_PIN, DIR_PIN, steplen, stepspace, dirsetup, dirhold, dirdelay);
     }
 
     void callUpdate()
