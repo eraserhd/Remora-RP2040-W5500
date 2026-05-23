@@ -12,12 +12,12 @@
 
 using namespace std;
 
-template<int ISR>
-pruThread *pruTimer<ISR>::thread = nullptr;
+template<class Traits>
+pruThread *pruTimer<Traits>::thread = nullptr;
 
 // Timer constructor
-template<int ISR>
-pruTimer<ISR>::pruTimer(uint8_t slice, pruThread* ownerPtr):
+template<class Traits>
+pruTimer<Traits>::pruTimer(uint8_t slice, pruThread* ownerPtr):
     slice(slice),
     timerOwnerPtr(ownerPtr)
 {
@@ -25,17 +25,17 @@ pruTimer<ISR>::pruTimer(uint8_t slice, pruThread* ownerPtr):
     this->startTimer();
 }
 
-template<int ISR>
-void pruTimer<ISR>::ISR_Handler(void)
+template<class Traits>
+void pruTimer<Traits>::ISR_Handler(void)
 {
     //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
     thread->execute = true;
-    if (ISR == 0)
+    if (Traits::runInISR)
         thread->run();
 }
 
-template<int ISR>
-void pruTimer<ISR>::startTimer(void)
+template<class Traits>
+void pruTimer<Traits>::startTimer(void)
 {
     uint32_t period;
 
@@ -87,9 +87,9 @@ pruThread::pruThread(uint8_t slice) :
 void pruThread::startThread(void)
 {
     if (this->slice == 0)
-        new pruTimer<TIMER_IRQ_0>(this->slice, this);
+        new pruTimer<BaseThreadTraits>(this->slice, this);
     else
-        new pruTimer<TIMER_IRQ_1>(this->slice, this);
+        new pruTimer<ServoThreadTraits>(this->slice, this);
 }
 
 void pruThread::registerModule(Module* module)
@@ -116,15 +116,15 @@ void pruThread::run(void)
     this->execute = false;
 }
 
-template<int ISR>
-void pruTimer<ISR>::Register(pruThread* intThisPtr)
+template<class Traits>
+void pruTimer<Traits>::Register(pruThread* intThisPtr)
 {
-       printf("Registering interrupt for interrupt number = %d\n", ISR);
+       printf("Registering interrupt for interrupt number = %d\n", Traits::irq);
        thread = intThisPtr;
 }
 
-template<int ISR>
-void pruTimer<ISR>::SLICE0_Wrapper(void)
+template<class Traits>
+void pruTimer<Traits>::SLICE0_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
     timer_hw->alarm[0] += BASE_PERIOD;
@@ -133,8 +133,8 @@ void pruTimer<ISR>::SLICE0_Wrapper(void)
     gpio_put(6, 0);
 }
 
-template<int ISR>
-void pruTimer<ISR>::SLICE1_Wrapper(void)
+template<class Traits>
+void pruTimer<Traits>::SLICE1_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
