@@ -56,43 +56,42 @@ public:
 
 // Base class for all interrupt derived classes
 
-#define PERIPH_COUNT_IRQn	8				// Total number of device interrupt sources - 8 PWM Slices (for the moment)
+#define PERIPH_COUNT_IRQn   8               // Total number of device interrupt sources - 8 PWM Slices (for the moment)
 
 
 
 class Interrupt
 {
-	protected:
+protected:
 
-		static Interrupt* ISRVectorTable[PERIPH_COUNT_IRQn];
+    static Interrupt* ISRVectorTable[PERIPH_COUNT_IRQn];
 
-	public:
+public:
 
-		Interrupt(void);
+    Interrupt(void);
 
-		static void Register(int interruptNumber, Interrupt* intThisPtr);
+    static void Register(int interruptNumber, Interrupt* intThisPtr);
 
-		// wrapper functions to ISR_Handler()
-		static void SLICE0_Wrapper();
-        static void SLICE1_Wrapper();
+    // wrapper functions to ISR_Handler()
+    static void SLICE0_Wrapper();
+    static void SLICE1_Wrapper();
 
-		virtual void ISR_Handler(void) = 0;
+    virtual void ISR_Handler(void) = 0;
 
 };
 
 class TimerInterrupt : public Interrupt
 {
-	private:
-	    
-		pruTimer* InterruptOwnerPtr;
-	
-	public:
-
-		TimerInterrupt(int interruptNumber, pruTimer* ownerptr);
+private:
     
-		void ISR_Handler(void);
+    pruTimer* InterruptOwnerPtr;
+
+public:
+
+    TimerInterrupt(int interruptNumber, pruTimer* ownerptr);
+
+    void ISR_Handler(void);
 };
 
 
 #endif
-
