@@ -11,7 +11,6 @@ using namespace std;
 
 class Module;
 
-class TimerInterrupt; // forward declaration
 class pruThread; // forward declaration
 
 class Interrupt
@@ -31,17 +30,16 @@ public:
 };
 
 class pruTimer
+    : public Interrupt
 {
-friend class TimerInterrupt;
-
 private:
 
-    TimerInterrupt*     interruptPtr;
     uint8_t             slice;
     pruThread*          timerOwnerPtr;
 
     void startTimer(void);
-    void timerTick();           // Private timer tiggered method
+
+    virtual void ISR_Handler(void) override;
 
 public:
     pruTimer(uint8_t slice, pruThread* ownerPtr);
@@ -69,21 +67,5 @@ public:
 
 #define BASE_PERIOD 1000000 / PRU_BASEFREQ
 #define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
-
-// Base class for all interrupt derived classes
-
-class TimerInterrupt : public Interrupt
-{
-private:
-    
-    pruTimer* InterruptOwnerPtr;
-
-public:
-
-    TimerInterrupt(int interruptNumber, pruTimer* ownerptr);
-
-    void ISR_Handler(void);
-};
-
 
 #endif

@@ -17,13 +17,12 @@ pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr):
     slice(slice),
     timerOwnerPtr(ownerPtr)
 {
-    interruptPtr = new TimerInterrupt(this->slice, this);   // Instantiate a new Timer Interrupt object and pass "this" pointer
-
+    Interrupt::Register(this->slice, this);
     this->startTimer();
 }
 
 
-void pruTimer::timerTick(void)
+void pruTimer::ISR_Handler(void)
 {
     //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
     this->timerOwnerPtr->execute = true;
@@ -134,20 +133,4 @@ void Interrupt::SLICE1_Wrapper(void)
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
     ISRVectorTable[1]->ISR_Handler();
-}
-
-TimerInterrupt::TimerInterrupt(int interruptNumber, pruTimer* owner)
-{
-    // Allows interrupt to access owner's data
-    InterruptOwnerPtr = owner;
-
-    // When a device interrupt object is instantiated, the Register function must be called to let the
-    // Interrupt base class know that there is an appropriate ISR function for the given interrupt.
-    Interrupt::Register(interruptNumber, this);
-}
-
-
-void TimerInterrupt::ISR_Handler(void)
-{
-    this->InterruptOwnerPtr->timerTick();
 }
