@@ -37,17 +37,8 @@ void pruTimer<Traits>::ISR_Handler(void)
 template<class Traits>
 void pruTimer<Traits>::startTimer(void)
 {
-    uint32_t period;
-
     printf("    setting up timer Slice %d\n", this->slice);
-
-    if (this->slice == 0)
-        period = BASE_PERIOD;
-    else if (this->slice == 1)
-        period = SERVO_PERIOD;
-    else
-        period = 0;
-    printf("    actual period = %d\n", period);
+    printf("    actual period = %d\n", Traits::period);
 
     if (this->slice == 0){
         gpio_init(6);
@@ -55,14 +46,14 @@ void pruTimer<Traits>::startTimer(void)
         hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 0
         irq_set_exclusive_handler(TIMER_IRQ_0, pruTimer::SLICE0_Wrapper);
         irq_set_enabled(TIMER_IRQ_0, true);
-        timer_hw->alarm[slice] = timer_hw->timerawl + BASE_PERIOD;
+        timer_hw->alarm[slice] = timer_hw->timerawl + Traits::period;
     }
 
     else if (this->slice == 1){
         hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 1
         irq_set_exclusive_handler(TIMER_IRQ_1, pruTimer::SLICE1_Wrapper);
         irq_set_enabled(TIMER_IRQ_1, true);
-        timer_hw->alarm[slice] = timer_hw->timerawl + SERVO_PERIOD;
+        timer_hw->alarm[slice] = timer_hw->timerawl + Traits::period;
     } else{
         printf("    Invalid Slice\n");
     }
@@ -127,16 +118,16 @@ template<class Traits>
 void pruTimer<Traits>::SLICE0_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
-    timer_hw->alarm[0] += BASE_PERIOD;
-    gpio_put(6, 1);
+    timer_hw->alarm[0] += Traits::period;
+    gpio_put(Traits::debugPin, 1);
     ISR_Handler();
-    gpio_put(6, 0);
+    gpio_put(Traits::debugPin, 0);
 }
 
 template<class Traits>
 void pruTimer<Traits>::SLICE1_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
-    timer_hw->alarm[1] += SERVO_PERIOD;
+    timer_hw->alarm[1] += Traits::period;
     ISR_Handler();
 }

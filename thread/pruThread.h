@@ -30,18 +30,19 @@ public:
     void run(void);
 };
 
-#define BASE_PERIOD 1000000 / PRU_BASEFREQ
-#define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
-
 struct BaseThreadTraits
 {
     static constexpr int irq = TIMER_IRQ_0;
+    static constexpr uint32_t period = 1000000 / PRU_BASEFREQ;
+    static constexpr int debugPin = 6;
     static constexpr bool runInISR = true;
 };
 
 struct ServoThreadTraits
 {
     static constexpr int irq = TIMER_IRQ_1;
+    static constexpr uint32_t period = 1000000 / PRU_SERVOFREQ;
+    static constexpr int debugPin = 27;
     static constexpr bool runInISR = false;
 };
 
