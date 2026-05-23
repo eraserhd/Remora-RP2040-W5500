@@ -24,8 +24,7 @@ struct BasicDDSAccumulator
     inline bool triggered() const                     { return value < low || value > high; }
     inline void advance(int32_t freq, int32_t cycles) { if (!triggered()) value += 2*freq*cycles; }
 
-    // Acknowledge that the triggered step has been emitted.
-    inline void reset()
+    inline void resetTrigger()
     {
         assert(triggered());
         if (value < low) value += 2*CycleFrequency;
@@ -265,7 +264,7 @@ private:
     inline void planStep(int32_t nextStep)
     {
         planWaitThenSetPins(nextStep, true, currentDirection);
-        dds.reset();
+        dds.resetTrigger();
         if (isForward())
             ++this->rawCount;
         else
