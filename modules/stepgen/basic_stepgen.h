@@ -11,15 +11,15 @@
 // A DDS accumulator which can also be queried for how many cycles until the
 // next trigger.  When triggered, it stops advancing and stays triggered, which
 // is used to wait out dirhold and dirsetup and such.
-template<int32_t Dx>
+template<int32_t CycleFrequency>
 struct BasicDDSAccumulator
 {
     int32_t value;
 
     inline BasicDDSAccumulator() : value(0) {}
 
-    static constexpr int32_t low  = -Dx + 1;
-    static constexpr int32_t high = Dx;
+    static constexpr int32_t low  = -CycleFrequency + 1;
+    static constexpr int32_t high = CycleFrequency;
 
     inline bool triggered() const                     { return value < low || value > high; }
     inline void advance(int32_t freq, int32_t cycles) { if (!triggered()) value += 2*freq*cycles; }
@@ -28,12 +28,12 @@ struct BasicDDSAccumulator
     inline void reset()
     {
         assert(triggered());
-        if (value < low) value += 2*Dx;
-        else if (value > high) value -= 2*Dx;
+        if (value < low) value += 2*CycleFrequency;
+        else if (value > high) value -= 2*CycleFrequency;
         assert(!triggered());
     }
 
-    inline int32_t cyclesUntilNextStep(int32_t freq) const
+    inline int32_t cyclesUntilTrigger(int32_t freq) const
     {
         if (triggered()) return 0;
         if (freq == 0) return INT32_MAX;
@@ -256,9 +256,9 @@ private:
 
     inline void planSteps()
     {
-        for (int32_t nextStep = dds.cyclesUntilNextStep(localFrequency);
+        for (int32_t nextStep = dds.cyclesUntilTrigger(localFrequency);
              nextStep < tickCyclesRemaining();
-             nextStep = dds.cyclesUntilNextStep(localFrequency))
+             nextStep = dds.cyclesUntilTrigger(localFrequency))
             planStep(nextStep);
     }
 

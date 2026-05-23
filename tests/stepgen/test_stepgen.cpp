@@ -310,7 +310,7 @@ public:
 
 // ---
 
-TEST(test_advancing_cyclesUntilNextStep_always_triggers)
+TEST(test_advancing_cyclesUntilTrigger_always_triggers)
 {
     using DDS = BasicDDSAccumulator<75000>;
     DDS dds;
@@ -322,13 +322,13 @@ TEST(test_advancing_cyclesUntilNextStep_always_triggers)
     {
         dds.value = value;
         assert(!dds.triggered());
-        int32_t cycles = dds.cyclesUntilNextStep(f);
+        int32_t cycles = dds.cyclesUntilTrigger(f);
         dds.advance(f, cycles);
         assert(dds.triggered());
     }
 }
 
-TEST(test_advancing_less_than_cyclesUntilNextStep_never_triggers)
+TEST(test_advancing_less_than_cyclesUntilTrigger_never_triggers)
 {
     using DDS = BasicDDSAccumulator<75000>;
     DDS dds;
@@ -340,7 +340,7 @@ TEST(test_advancing_less_than_cyclesUntilNextStep_never_triggers)
     {
         dds.value = value;
         assert(!dds.triggered());
-        int32_t cycles = dds.cyclesUntilNextStep(f);
+        int32_t cycles = dds.cyclesUntilTrigger(f);
         dds.advance(f, cycles-1);
         assert(!dds.triggered());
         dds.advance(f, 1);
@@ -484,8 +484,8 @@ TEST(test_waits_dirdelay_before_emitting_a_pulse_in_the_opposite_direction)
 
 int main()
 {
-    test_advancing_cyclesUntilNextStep_always_triggers();
-    test_advancing_less_than_cyclesUntilNextStep_never_triggers();
+    test_advancing_cyclesUntilTrigger_always_triggers();
+    test_advancing_less_than_cyclesUntilTrigger_never_triggers();
     test_disabled_joint_does_not_step();
     test_zero_frequency_does_not_step();
     test_half_rate_steps_every_two_updates();
