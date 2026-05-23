@@ -13,25 +13,25 @@ class Module;
 class pruThread
 {
 
-	private:
+private:
+    pruTimer*                   TimerPtr;
 
-		pruTimer* 		    TimerPtr;
-	
-		uint8_t				slice;
-		uint32_t 			frequency;
+    uint8_t                         slice;
+    uint32_t                        frequency;
 
-		vector<Module*> vThread;		// vector containing pointers to Thread modules
-		vector<Module*>::iterator iter;
+    vector<Module*> vThread;                // vector containing pointers to Thread modules
+    vector<Module*>::iterator iter;
 
-	public:
-		bool				execute;
+public:
+    bool                            execute;
 
-		pruThread(uint8_t slice, uint32_t frequency);
+    pruThread(uint8_t slice, uint32_t frequency);
 
-		void registerModule(Module *module);
-		void startThread(void);
-        void stopThread(void);
-		void run(void);
+    void registerModule(Module *module);
+    void startThread(void);
+
+    void stopThread(void);
+    void run(void);
 };
 
 #endif
