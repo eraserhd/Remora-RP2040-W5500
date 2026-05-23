@@ -49,7 +49,6 @@ public:
 class pruThread
 {
 private:
-    pruTimer *TimerPtr;
     uint8_t                         slice;
 
     vector<Module*> vThread;                // vector containing pointers to Thread modules

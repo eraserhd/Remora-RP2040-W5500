@@ -21,7 +21,6 @@ pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr):
     this->startTimer();
 }
 
-
 void pruTimer::ISR_Handler(void)
 {
     //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
@@ -29,8 +28,6 @@ void pruTimer::ISR_Handler(void)
     if (this->slice == 0)
         this->timerOwnerPtr->run();
 }
-
-
 
 void pruTimer::startTimer(void)
 {
@@ -83,7 +80,7 @@ pruThread::pruThread(uint8_t slice) :
 
 void pruThread::startThread(void)
 {
-    TimerPtr = new pruTimer(this->slice, this);
+    new pruTimer(this->slice, this);
 }
 
 void pruThread::registerModule(Module* module)
