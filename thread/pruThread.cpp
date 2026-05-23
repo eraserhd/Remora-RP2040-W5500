@@ -9,11 +9,10 @@
 using namespace std;
 
 // Thread constructor
-pruThread::pruThread(uint8_t slice, uint32_t frequency) :
-    slice(slice),
-    frequency(frequency)
+pruThread::pruThread(uint8_t slice) :
+    slice(slice)
 {
-    printf("Creating thread %d\n", this->frequency);
+    printf("Creating thread %d\n", this->slice);
 
     if (this->slice == 1){
         gpio_init(27);
