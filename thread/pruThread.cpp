@@ -17,7 +17,7 @@ pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr):
     slice(slice),
     timerOwnerPtr(ownerPtr)
 {
-    Interrupt::Register(this->slice, this);
+    Register(this->slice, this);
     this->startTimer();
 }
 
@@ -47,14 +47,14 @@ void pruTimer::startTimer(void)
         gpio_init(6);
         gpio_set_dir(6, 1);
         hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 0
-        irq_set_exclusive_handler(TIMER_IRQ_0, Interrupt::SLICE0_Wrapper);
+        irq_set_exclusive_handler(TIMER_IRQ_0, pruTimer::SLICE0_Wrapper);
         irq_set_enabled(TIMER_IRQ_0, true);
         timer_hw->alarm[slice] = timer_hw->timerawl + BASE_PERIOD;
     }
 
     else if (this->slice == 1){
         hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 1
-        irq_set_exclusive_handler(TIMER_IRQ_1, Interrupt::SLICE1_Wrapper);
+        irq_set_exclusive_handler(TIMER_IRQ_1, pruTimer::SLICE1_Wrapper);
         irq_set_enabled(TIMER_IRQ_1, true);
         timer_hw->alarm[slice] = timer_hw->timerawl + SERVO_PERIOD;
     } else{
@@ -108,15 +108,15 @@ void pruThread::run(void)
 }
 
 // Define the vector table, it is only declared in the class declaration
-Interrupt* Interrupt::ISRVectorTable[] = {0};
+pruTimer* pruTimer::ISRVectorTable[] = {0};
 
-void Interrupt::Register(int interruptNumber, Interrupt* intThisPtr)
+void pruTimer::Register(int interruptNumber, pruTimer* intThisPtr)
 {
        printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
        ISRVectorTable[interruptNumber] = intThisPtr;
 }
 
-void Interrupt::SLICE0_Wrapper(void)
+void pruTimer::SLICE0_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
     timer_hw->alarm[0] += BASE_PERIOD;
@@ -125,7 +125,7 @@ void Interrupt::SLICE0_Wrapper(void)
     gpio_put(6, 0);
 }
 
-void Interrupt::SLICE1_Wrapper(void)
+void pruTimer::SLICE1_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
