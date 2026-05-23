@@ -15,22 +15,22 @@ extern "C" void PWM_Wrap_Handler1();
 
 // Timer constructor
 pruTimer::pruTimer(uint8_t slice, uint32_t frequency, pruThread* ownerPtr):
-	slice(slice),
-	frequency(frequency),
-	timerOwnerPtr(ownerPtr)
+    slice(slice),
+    frequency(frequency),
+    timerOwnerPtr(ownerPtr)
 {
-	interruptPtr = new TimerInterrupt(this->slice, this);	// Instantiate a new Timer Interrupt object and pass "this" pointer
+    interruptPtr = new TimerInterrupt(this->slice, this);   // Instantiate a new Timer Interrupt object and pass "this" pointer
 
-	this->startTimer();
+    this->startTimer();
 }
 
 
 void pruTimer::timerTick(void)
 {
-	//base thread is run from interrupt context.  Servo thread is not and can get interrupted.
+    //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
     this->timerOwnerPtr->execute = true;
     if (this->slice == 0)
-	    this->timerOwnerPtr->run();
+        this->timerOwnerPtr->run();
 }
 
 
@@ -38,9 +38,9 @@ void pruTimer::timerTick(void)
 void pruTimer::startTimer(void)
 {
     uint32_t period;
-    
+
     printf("    setting up timer Slice %d\n", this->slice);
-   
+
     if (this->slice == 0)
         period = BASE_PERIOD;
     else if (this->slice == 1)
@@ -64,14 +64,8 @@ void pruTimer::startTimer(void)
         irq_set_enabled(TIMER_IRQ_1, true);
         timer_hw->alarm[slice] = timer_hw->timerawl + SERVO_PERIOD;
     } else{
-        printf("	Invalid Slice\n");
+        printf("    Invalid Slice\n");
     }
 
-    printf("	timer started\n");
-}
-
-void pruTimer::stopTimer()
-{
-    printf("	timer stop\n\r");
-    irq_set_enabled(PWM_IRQ_WRAP, false);
+    printf("    timer started\n");
 }
