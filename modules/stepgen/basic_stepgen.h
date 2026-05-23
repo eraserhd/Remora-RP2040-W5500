@@ -40,6 +40,44 @@ struct BasicDDSAccumulator
     }
 };
 
+// CycleCounter is used to track expiration time for various events like
+// dirhold and dirsetup.  It wraps every thirty-some seconds, but is
+// modelled after Linux jiffies, so that it will work correctly when it
+// wraps.
+//
+// It doesn't own the time, which is why now is passed to start() and
+// remaining(), but this value must be monotonically increasing.
+//
+// We must call update() periodically to disarm expired timers to prevent
+// them from being active again when our time wraps.
+struct CycleCounter
+{
+    uint32_t durationCycles;
+    uint32_t expiryCycle;
+    bool armed;
+
+    inline CycleCounter(uint32_t duration)
+        : durationCycles(duration)
+        , expiryCycle(0)
+        , armed(false)
+    {
+    }
+
+    inline void start(uint32_t now)
+    {
+        expiryCycle = now + durationCycles;
+        armed = true;
+    }
+
+    inline uint32_t remaining(uint32_t now) const
+    {
+        return armed ? std::max(int32_t(0), int32_t(expiryCycle - now)) : 0;
+    }
+
+    // Disarm if expired, so we don't spuriously show armed on next cycle.
+    inline void update(uint32_t now) { if (!remaining(now)) armed = false; }
+};
+
 // A step generator which schedules pin changes in terms of cycles.  It tracks
 // how far into the future it has scheduled, and schedules until at least until
 // the next base thread tick so that it can keep the TX command queue full.
@@ -66,44 +104,6 @@ class BasicStepgen
             ? uint32_t((uint64_t(ns) * uint64_t(CpuFreq) + 999999999ULL) / 1000000000ULL)
             : cyclesPerTick;
     }
-
-    // CycleCounter is used to track expiration time for various events like
-    // dirhold and dirsetup.  It wraps every thirty-some seconds, but is
-    // modelled after Linux jiffies, so that it will work correctly when it
-    // wraps.
-    //
-    // It doesn't own the time, which is why now is passed to start() and
-    // remaining(), but this value must be monotonically increasing.
-    //
-    // We must call update() periodically to disarm expired timers to prevent
-    // them from being active again when our time wraps.
-    struct CycleCounter
-    {
-        uint32_t durationCycles;
-        uint32_t expiryCycle;
-        bool armed;
-
-        inline CycleCounter(uint32_t duration)
-            : durationCycles(duration)
-            , expiryCycle(0)
-            , armed(false)
-        {
-        }
-
-        inline void start(uint32_t now)
-        {
-            expiryCycle = now + durationCycles;
-            armed = true;
-        }
-
-        inline uint32_t remaining(uint32_t now) const
-        {
-            return armed ? std::max(int32_t(0), int32_t(expiryCycle - now)) : 0;
-        }
-
-        // Disarm if expired, so we don't spuriously show armed on next cycle.
-        inline void update(uint32_t now) { if (!remaining(now)) armed = false; }
-    };
 
     using DDSAccumulator = BasicDDSAccumulator<CpuFreq>;
 
