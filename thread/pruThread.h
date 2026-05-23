@@ -11,7 +11,26 @@ using namespace std;
 
 class Module;
 
-class pruThread; // forward declaration
+class pruThread
+{
+private:
+    uint8_t                         slice;
+
+    vector<Module*> vThread;                // vector containing pointers to Thread modules
+
+public:
+    bool                            execute;
+
+    pruThread(uint8_t slice);
+
+    void registerModule(Module *module);
+    void startThread(void);
+
+    void run(void);
+};
+
+#define BASE_PERIOD 1000000 / PRU_BASEFREQ
+#define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
 
 class Interrupt
 {
@@ -21,7 +40,6 @@ protected:
 public:
     static void Register(int interruptNumber, Interrupt* intThisPtr);
 
-    // wrapper functions to ISR_Handler()
     static void SLICE0_Wrapper();
     static void SLICE1_Wrapper();
 
@@ -45,26 +63,5 @@ public:
     pruTimer(uint8_t slice, pruThread* ownerPtr);
 
 };
-
-class pruThread
-{
-private:
-    uint8_t                         slice;
-
-    vector<Module*> vThread;                // vector containing pointers to Thread modules
-
-public:
-    bool                            execute;
-
-    pruThread(uint8_t slice);
-
-    void registerModule(Module *module);
-    void startThread(void);
-
-    void run(void);
-};
-
-#define BASE_PERIOD 1000000 / PRU_BASEFREQ
-#define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
 
 #endif
