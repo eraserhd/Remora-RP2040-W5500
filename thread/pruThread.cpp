@@ -12,22 +12,6 @@
 
 using namespace std;
 
-void PWM_Wrap_Handler0()
-{
-    hw_clear_bits(&timer_hw->intr, 1u << 0);
-    timer_hw->alarm[0] += BASE_PERIOD;
-    gpio_put(6, 1);
-    Interrupt::SLICE0_Wrapper();
-    gpio_put(6, 0);
-}
-
-void PWM_Wrap_Handler1()
-{
-    hw_clear_bits(&timer_hw->intr, 1u << 1);
-    timer_hw->alarm[1] += SERVO_PERIOD;
-    Interrupt::SLICE1_Wrapper();
-}
-
 // Timer constructor
 pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr):
     slice(slice),
@@ -67,14 +51,14 @@ void pruTimer::startTimer(void)
         gpio_init(6);
         gpio_set_dir(6, 1);
         hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 0
-        irq_set_exclusive_handler(TIMER_IRQ_0, PWM_Wrap_Handler0);
+        irq_set_exclusive_handler(TIMER_IRQ_0, Interrupt::SLICE0_Wrapper);
         irq_set_enabled(TIMER_IRQ_0, true);
         timer_hw->alarm[slice] = timer_hw->timerawl + BASE_PERIOD;
     }
 
     else if (this->slice == 1){
         hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 1
-        irq_set_exclusive_handler(TIMER_IRQ_1, PWM_Wrap_Handler1);
+        irq_set_exclusive_handler(TIMER_IRQ_1, Interrupt::SLICE1_Wrapper);
         irq_set_enabled(TIMER_IRQ_1, true);
         timer_hw->alarm[slice] = timer_hw->timerawl + SERVO_PERIOD;
     } else{
@@ -144,14 +128,19 @@ void Interrupt::Register(int interruptNumber, Interrupt* intThisPtr)
 
 void Interrupt::SLICE0_Wrapper(void)
 {
-       ISRVectorTable[0]->ISR_Handler();
+    hw_clear_bits(&timer_hw->intr, 1u << 0);
+    timer_hw->alarm[0] += BASE_PERIOD;
+    gpio_put(6, 1);
+    ISRVectorTable[0]->ISR_Handler();
+    gpio_put(6, 0);
 }
 
 void Interrupt::SLICE1_Wrapper(void)
 {
-       ISRVectorTable[1]->ISR_Handler();
+    hw_clear_bits(&timer_hw->intr, 1u << 1);
+    timer_hw->alarm[1] += SERVO_PERIOD;
+    ISRVectorTable[1]->ISR_Handler();
 }
-
 
 TimerInterrupt::TimerInterrupt(int interruptNumber, pruTimer* owner)
 {
