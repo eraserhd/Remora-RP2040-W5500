@@ -41,8 +41,8 @@ void pruTimer<Traits>::startTimer(void)
     printf("    actual period = %d\n", Traits::period);
 
     if (this->slice == 0){
-        gpio_init(6);
-        gpio_set_dir(6, 1);
+        gpio_init(Traits::debugPin);
+        gpio_set_dir(Traits::debugPin, 1);
         hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 0
         irq_set_exclusive_handler(TIMER_IRQ_0, pruTimer::SLICE0_Wrapper);
         irq_set_enabled(TIMER_IRQ_0, true);
