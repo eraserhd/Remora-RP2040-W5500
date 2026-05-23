@@ -76,8 +76,11 @@ public:
         return armed ? std::max(int32_t(0), int32_t(expiry - now)) : 0;
     }
 
-    // Disarm if expired, so we don't spuriously show armed on next cycle.
-    inline void update(uint32_t now) { if (!remaining(now)) armed = false; }
+    inline void disarmIfExpired(uint32_t now)
+    {
+        if (!remaining(now))
+            armed = false;
+    }
 };
 
 // A step generator which schedules pin changes in terms of cycles.  It tracks
@@ -181,10 +184,11 @@ public:
         // Cache volatile frequency locally so it doesn't change during the
         // planning tick.
         localFrequency = frequency;
+
         tickEndCycle += cyclesPerTick;
-        dirhold.update(plannedCycles);
-        dirsetup.update(plannedCycles);
-        dirdelay.update(plannedCycles);
+        dirhold.disarmIfExpired(plannedCycles);
+        dirsetup.disarmIfExpired(plannedCycles);
+        dirdelay.disarmIfExpired(plannedCycles);
 
         if (localFrequency != 0)
         {
