@@ -32,12 +32,13 @@ public:
 #define BASE_PERIOD 1000000 / PRU_BASEFREQ
 #define SERVO_PERIOD 1000000 / PRU_SERVOFREQ
 
+template<int ISR>
 class pruTimer
 {
 protected:
-    static pruTimer* ISRVectorTable[8];
+    static pruThread* thread;
 
-    static void Register(int interruptNumber, pruTimer* intThisPtr);
+    static void Register(int interruptNumber, pruThread* intThisPtr);
 
     static void SLICE0_Wrapper();
     static void SLICE1_Wrapper();
@@ -49,7 +50,7 @@ private:
 
     void startTimer(void);
 
-    void ISR_Handler(void);
+    static void ISR_Handler(void);
 
 public:
     pruTimer(uint8_t slice, pruThread* ownerPtr);

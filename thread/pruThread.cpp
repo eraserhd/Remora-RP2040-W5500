@@ -12,24 +12,30 @@
 
 using namespace std;
 
+template<int ISR>
+pruThread *pruTimer<ISR>::thread = nullptr;
+
 // Timer constructor
-pruTimer::pruTimer(uint8_t slice, pruThread* ownerPtr):
+template<int ISR>
+pruTimer<ISR>::pruTimer(uint8_t slice, pruThread* ownerPtr):
     slice(slice),
     timerOwnerPtr(ownerPtr)
 {
-    Register(this->slice, this);
+    Register(this->slice, ownerPtr);
     this->startTimer();
 }
 
-void pruTimer::ISR_Handler(void)
+template<int ISR>
+void pruTimer<ISR>::ISR_Handler(void)
 {
     //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
-    this->timerOwnerPtr->execute = true;
-    if (this->slice == 0)
-        this->timerOwnerPtr->run();
+    thread->execute = true;
+    if (ISR == 0)
+        thread->run();
 }
 
-void pruTimer::startTimer(void)
+template<int ISR>
+void pruTimer<ISR>::startTimer(void)
 {
     uint32_t period;
 
@@ -80,7 +86,10 @@ pruThread::pruThread(uint8_t slice) :
 
 void pruThread::startThread(void)
 {
-    new pruTimer(this->slice, this);
+    if (this->slice == 0)
+        new pruTimer<TIMER_IRQ_0>(this->slice, this);
+    else
+        new pruTimer<TIMER_IRQ_1>(this->slice, this);
 }
 
 void pruThread::registerModule(Module* module)
@@ -107,27 +116,27 @@ void pruThread::run(void)
     this->execute = false;
 }
 
-// Define the vector table, it is only declared in the class declaration
-pruTimer* pruTimer::ISRVectorTable[] = {0};
-
-void pruTimer::Register(int interruptNumber, pruTimer* intThisPtr)
+template<int ISR>
+void pruTimer<ISR>::Register(int interruptNumber, pruThread* intThisPtr)
 {
        printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
-       ISRVectorTable[interruptNumber] = intThisPtr;
+       thread = intThisPtr;
 }
 
-void pruTimer::SLICE0_Wrapper(void)
+template<int ISR>
+void pruTimer<ISR>::SLICE0_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 0);
     timer_hw->alarm[0] += BASE_PERIOD;
     gpio_put(6, 1);
-    ISRVectorTable[0]->ISR_Handler();
+    ISR_Handler();
     gpio_put(6, 0);
 }
 
-void pruTimer::SLICE1_Wrapper(void)
+template<int ISR>
+void pruTimer<ISR>::SLICE1_Wrapper(void)
 {
     hw_clear_bits(&timer_hw->intr, 1u << 1);
     timer_hw->alarm[1] += SERVO_PERIOD;
-    ISRVectorTable[1]->ISR_Handler();
+    ISR_Handler();
 }
