@@ -38,7 +38,7 @@ class pruTimer
 protected:
     static pruThread* thread;
 
-    static void Register(int interruptNumber, pruThread* intThisPtr);
+    static void Register(pruThread* intThisPtr);
 
     static void SLICE0_Wrapper();
     static void SLICE1_Wrapper();

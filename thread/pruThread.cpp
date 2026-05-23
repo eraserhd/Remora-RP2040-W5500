@@ -21,7 +21,7 @@ pruTimer<ISR>::pruTimer(uint8_t slice, pruThread* ownerPtr):
     slice(slice),
     timerOwnerPtr(ownerPtr)
 {
-    Register(this->slice, ownerPtr);
+    Register(ownerPtr);
     this->startTimer();
 }
 
@@ -117,9 +117,9 @@ void pruThread::run(void)
 }
 
 template<int ISR>
-void pruTimer<ISR>::Register(int interruptNumber, pruThread* intThisPtr)
+void pruTimer<ISR>::Register(pruThread* intThisPtr)
 {
-       printf("Registering interrupt for interrupt number = %d\n", interruptNumber);
+       printf("Registering interrupt for interrupt number = %d\n", ISR);
        thread = intThisPtr;
 }
 
