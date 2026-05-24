@@ -83,6 +83,7 @@ extern "C"
 #include "modules/stepgen/stepgen.h"
 #include "modules/digitalPin/digitalPin.h"
 
+using namespace std;
 
 /***********************************************************************
 *                STRUCTURES AND GLOBAL VARIABLES                       *
@@ -109,8 +110,6 @@ bool threadsRunning = false;
 uint8_t noDataCount;
 
 // pointers to objects with global scope
-BaseThread baseThread;
-ServoThread servoThread;
 RemoraComms* comms;
 RxPingPongBuffer rxPingPongBuffer;
 TxPingPongBuffer txPingPongBuffer;
@@ -370,10 +369,10 @@ void debugThreadHigh()
     printf("\n  Thread debugging.... \n\n");
 
     Module* debugOnB = new Debug("GP06", 1);
-    baseThread.registerModule(debugOnB);
+    BaseThread::registerModule(debugOnB);
 
     Module* debugOnS = new Debug("GP15", 1);
-    servoThread.registerModule(debugOnS);
+    ServoThread::registerModule(debugOnS);
 }
 
 
@@ -382,10 +381,10 @@ void debugThreadLow()
     printf("\n  Thread debugging.... \n\n");
 
     Module* debugOffB = new Debug("GP14", 0);
-    baseThread.registerModule(debugOffB);
+    BaseThread::registerModule(debugOffB);
 
     Module* debugOffS = new Debug("GP15", 0);
-    servoThread.registerModule(debugOffS);
+    ServoThread::registerModule(debugOffS);
 }
 
 void core1_entry()
