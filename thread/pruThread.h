@@ -58,22 +58,14 @@ public:
 
     void run(void)
     {
-        if(!this->execute)
-            return;
+        if(!this->execute) return;
 
-        if (Traits::slice == 1){
-            gpio_put(Traits::debugPin, 1);
-        }
-
+        gpio_put(Traits::debugPin, 1);
         for (auto& m : vThread) m->runModule();
-
-        if (Traits::slice == 1){
-            gpio_put(Traits::debugPin, 0);
-        }
+        gpio_put(Traits::debugPin, 0);
 
         this->execute = false;
     }
-
 };
 
 template<class Traits>
@@ -100,11 +92,7 @@ private:
         //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
         thread->execute = true;
         if (Traits::runInISR)
-        {
-            gpio_put(Traits::debugPin, 1);
             thread->run();
-            gpio_put(Traits::debugPin, 0);
-        }
     }
 
 public:
