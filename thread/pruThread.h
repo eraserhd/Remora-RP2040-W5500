@@ -32,7 +32,7 @@ template<class Traits>
 class pruThread
 {
 private:
-    static std::vector<Module*> modules;             // vector containing pointers to Thread modules
+    static std::vector<Module*> modules;
     static bool execute;
 
     static void startTimer(void)
