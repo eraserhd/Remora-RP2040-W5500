@@ -94,7 +94,7 @@ public:
 
     static void start(void)
     {
-        printf("    actual period = %d\n", RunPolicy::period);
+        printf("    actual period = %u\n", RunPolicy::period);
         DebugPinPolicy::init();
         RunPolicy::init();
         printf("    timer started\n");
