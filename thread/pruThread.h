@@ -23,21 +23,17 @@ struct DebugPin
     inline static void clear(void) { gpio_put(Pin, 0); }
 };
 
-struct BaseThreadTraits
+template<irq_num_t Irq, uint32_t Period>
+struct IRQThreadRunner
 {
-    static constexpr int slice = 0;
-    static constexpr int irq = TIMER_IRQ_0;
-    static constexpr uint32_t period = 1000000 / PRU_BASEFREQ;
+    static constexpr int slice = TIMER_ALARM_NUM_FROM_IRQ(Irq);
+    static constexpr irq_num_t irq = Irq;
+    static constexpr uint32_t period = Period;
     static constexpr bool runInISR = true;
 };
 
-struct ServoThreadTraits
-{
-    static constexpr int slice = 1;
-    static constexpr int irq = TIMER_IRQ_1;
-    static constexpr uint32_t period = 1000000 / PRU_SERVOFREQ;
-    static constexpr bool runInISR = false;
-};
+using BaseThreadTraits = IRQThreadRunner<TIMER_IRQ_0, 1000000 / PRU_BASEFREQ>;
+using ServoThreadTraits = IRQThreadRunner<TIMER_IRQ_1, 1000000 / PRU_SERVOFREQ>;
 
 template<class Traits, class DebugPinPolicy>
 class pruThread
