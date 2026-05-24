@@ -76,10 +76,10 @@ template<class RunPolicy, class DebugPinPolicy>
 class pruThread
     : public RunPolicy
 {
-private:
+    friend RunPolicy;
     static std::vector<Module*> modules;
 
-public:
+protected:
     static void runModules(void)
     {
         DebugPinPolicy::set();
@@ -87,6 +87,7 @@ public:
         DebugPinPolicy::clear();
     }
 
+public:
     static void registerModule(Module *module)
     {
         modules.push_back(module);
