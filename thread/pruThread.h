@@ -33,6 +33,39 @@ struct ServoThreadTraits
 template<class Traits>
 class pruThread
 {
+protected:
+    static pruThread<Traits>* thread;
+
+    static void Register(pruThread<Traits>* intThisPtr)
+    {
+        printf("Registering interrupt for interrupt number = %d\n", Traits::irq);
+        thread = intThisPtr;
+    }
+
+private:
+    void startTimer(void)
+    {
+        printf("    setting up timer Slice %d\n", Traits::slice);
+        printf("    actual period = %d\n", Traits::period);
+
+        hw_set_bits(&timer_hw->inte, 1u << Traits::slice);
+        irq_set_exclusive_handler(Traits::irq, ISR_Handler);
+        irq_set_enabled(Traits::irq, true);
+        timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
+
+        printf("    timer started\n");
+    }
+
+    static void ISR_Handler(void)
+    {
+        hw_clear_bits(&timer_hw->intr, 1u << Traits::slice);
+        timer_hw->alarm[Traits::slice] += Traits::period;
+        //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
+        thread->execute = true;
+        if (Traits::runInISR)
+            thread->run();
+    }
+
 private:
     vector<Module*> vThread;                // vector containing pointers to Thread modules
 
@@ -41,6 +74,7 @@ public:
 
     pruThread()
     {
+        Register(this);
         printf("Creating thread %d\n", Traits::slice);
 
         gpio_init(Traits::debugPin);
@@ -54,7 +88,10 @@ public:
         vThread.push_back(module);
     }
 
-    void startThread(void);
+    void startThread(void)
+    {
+        startTimer();
+    }
 
     void run(void)
     {
@@ -69,63 +106,8 @@ public:
 };
 
 template<class Traits>
-class pruTimer
-{
-protected:
-    static pruThread<Traits>* thread;
+pruThread<Traits> *pruThread<Traits>::thread = nullptr;
 
-    static void Register(pruThread<Traits>* intThisPtr)
-    {
-        printf("Registering interrupt for interrupt number = %d\n", Traits::irq);
-        thread = intThisPtr;
-    }
-
-private:
-    pruThread<Traits>*  timerOwnerPtr;
-
-    void startTimer(void);
-
-    static void ISR_Handler(void)
-    {
-        hw_clear_bits(&timer_hw->intr, 1u << Traits::slice);
-        timer_hw->alarm[Traits::slice] += Traits::period;
-        //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
-        thread->execute = true;
-        if (Traits::runInISR)
-            thread->run();
-    }
-
-public:
-    pruTimer(pruThread<Traits>* ownerPtr)
-        : timerOwnerPtr(ownerPtr)
-    {
-        Register(ownerPtr);
-        this->startTimer();
-    }
-};
-
-template<class Traits>
-void pruThread<Traits>::startThread(void)
-{
-    new pruTimer<Traits>(this);
-}
-
-template<class Traits>
-pruThread<Traits> *pruTimer<Traits>::thread = nullptr;
-
-template<class Traits>
-void pruTimer<Traits>::startTimer(void)
-{
-    printf("    setting up timer Slice %d\n", Traits::slice);
-    printf("    actual period = %d\n", Traits::period);
-
-    hw_set_bits(&timer_hw->inte, 1u << Traits::slice);
-    irq_set_exclusive_handler(Traits::irq, ISR_Handler);
-    irq_set_enabled(Traits::irq, true);
-    timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
-
-    printf("    timer started\n");
-}
 
 using BaseThread = pruThread<BaseThreadTraits>;
 using ServoThread = pruThread<ServoThreadTraits>;
