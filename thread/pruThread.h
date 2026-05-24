@@ -23,13 +23,32 @@ struct DebugPin
     inline static void clear(void) { gpio_put(Pin, 0); }
 };
 
-template<irq_num_t Irq, uint32_t Period>
+template<irq_num_t Irq, uint32_t Period, class Thread>
 struct IRQThreadRunner
 {
     static constexpr int slice = TIMER_ALARM_NUM_FROM_IRQ(Irq);
     static constexpr irq_num_t irq = Irq;
     static constexpr uint32_t period = Period;
     static constexpr bool runInISR = true;
+
+    static void init(void)
+    {
+        hw_set_bits(&timer_hw->inte, 1u << slice);
+        irq_set_exclusive_handler(Irq, handleInterrupt);
+        irq_set_enabled(Irq, true);
+        timer_hw->alarm[slice] = timer_hw->timerawl + Period;
+    }
+
+private:
+    static void handleInterrupt(void)
+    {
+        hw_clear_bits(&timer_hw->intr, 1u << slice);
+        timer_hw->alarm[slice] += Period;
+
+        Thread::execute = true;
+        if (runInISR)
+            Thread::run();
+    }
 };
 
 template<class RunPolicy, class DebugPinPolicy>
@@ -37,7 +56,6 @@ class pruThread
 {
 private:
     static std::vector<Module*> modules;
-    static bool execute;
 
     static void startTimer(void)
     {
@@ -45,26 +63,13 @@ private:
         printf("    actual period = %d\n", RunPolicy::period);
 
         DebugPinPolicy::init();
-
-        hw_set_bits(&timer_hw->inte, 1u << RunPolicy::slice);
-        irq_set_exclusive_handler(RunPolicy::irq, ISR_Handler);
-        irq_set_enabled(RunPolicy::irq, true);
-        timer_hw->alarm[RunPolicy::slice] = timer_hw->timerawl + RunPolicy::period;
+        RunPolicy::init();
 
         printf("    timer started\n");
     }
 
-    static void ISR_Handler(void)
-    {
-        hw_clear_bits(&timer_hw->intr, 1u << RunPolicy::slice);
-        timer_hw->alarm[RunPolicy::slice] += RunPolicy::period;
-        //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
-        execute = true;
-        if (RunPolicy::runInISR)
-            run();
-    }
-
 public:
+    static bool execute;
     static void registerModule(Module *module)
     {
         modules.push_back(module);
@@ -93,7 +98,7 @@ std::vector<Module*> pruThread<RunPolicy, DebugPinPolicy>::modules;
 template<class RunPolicy, class DebugPinPolicy>
 bool pruThread<RunPolicy, DebugPinPolicy>::execute = false;
 
-using BaseThread = pruThread<IRQThreadRunner<TIMER_IRQ_0, 1000000 / PRU_BASEFREQ>, DebugPin<6>>;
-using ServoThread = pruThread<IRQThreadRunner<TIMER_IRQ_1, 1000000 / PRU_SERVOFREQ>, DebugPin<27>>;
+struct BaseThread : public pruThread<IRQThreadRunner<TIMER_IRQ_0, 1000000 / PRU_BASEFREQ, BaseThread>, DebugPin<6>> {};
+struct ServoThread : public pruThread<IRQThreadRunner<TIMER_IRQ_1, 1000000 / PRU_SERVOFREQ, ServoThread>, DebugPin<27>> {};
 
 #endif
