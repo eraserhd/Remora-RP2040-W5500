@@ -25,13 +25,13 @@ struct DebugPin
 };
 
 template<irq_num_t Irq, uint32_t Period, class Thread>
-struct IRQThreadRunner
+struct IRQRunner
 {
     static constexpr int slice = TIMER_ALARM_NUM_FROM_IRQ(Irq);
     static constexpr irq_num_t irq = Irq;
     static constexpr uint32_t period = Period;
 
-    static void init(void)
+    static void start(void)
     {
         hw_set_bits(&timer_hw->inte, 1u << slice);
         irq_set_exclusive_handler(Irq, handleInterrupt);
@@ -49,14 +49,14 @@ private:
 };
 
 template<uint32_t Period, class Thread>
-struct NonIRQThreadRunner
+struct NonIRQRunner
 {
     static constexpr uint32_t period = Period;
 private:
     static uint32_t deadline;
 
 public:
-    static void init(void)
+    static void start(void)
     {
         deadline = time_us_32() + Period;
     }
@@ -70,7 +70,7 @@ public:
 };
 
 template<uint32_t Period, class Thread>
-uint32_t NonIRQThreadRunner<Period, Thread>::deadline = 0;
+uint32_t NonIRQRunner<Period, Thread>::deadline = 0;
 
 template<class RunPolicy, class DebugPinPolicy>
 class pruThread
@@ -96,7 +96,7 @@ public:
     {
         printf("    actual period = %u\n", RunPolicy::period);
         DebugPinPolicy::init();
-        RunPolicy::init();
+        RunPolicy::start();
         printf("    timer started\n");
     }
 };
@@ -104,7 +104,7 @@ public:
 template<class RunPolicy, class DebugPinPolicy>
 std::vector<Module*> pruThread<RunPolicy, DebugPinPolicy>::modules;
 
-struct BaseThread : public pruThread<IRQThreadRunner<TIMER_IRQ_0, 1000000 / PRU_BASEFREQ, BaseThread>, DebugPin<6>> {};
-struct ServoThread : public pruThread<NonIRQThreadRunner<1000000 / PRU_SERVOFREQ, ServoThread>, DebugPin<27>> {};
+struct BaseThread : public pruThread<IRQRunner<TIMER_IRQ_0, 1000000 / PRU_BASEFREQ, BaseThread>, DebugPin<6>> {};
+struct ServoThread : public pruThread<NonIRQRunner<1000000 / PRU_SERVOFREQ, ServoThread>, DebugPin<27>> {};
 
 #endif
