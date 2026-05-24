@@ -43,10 +43,8 @@ public:
     {
         printf("Creating thread %d\n", Traits::slice);
 
-        if (Traits::slice == 1){
-            gpio_init(27);
-            gpio_set_dir(27, 1);
-        }
+        gpio_init(Traits::debugPin);
+        gpio_set_dir(Traits::debugPin, 1);
 
         this->execute = false;
     }
@@ -64,13 +62,13 @@ public:
             return;
 
         if (Traits::slice == 1){
-            gpio_put(27, 1);
+            gpio_put(Traits::debugPin, 1);
         }
 
         for (auto& m : vThread) m->runModule();
 
         if (Traits::slice == 1){
-            gpio_put(27, 0);
+            gpio_put(Traits::debugPin, 0);
         }
 
         this->execute = false;
@@ -144,8 +142,6 @@ void pruTimer<Traits>::startTimer(void)
     printf("    actual period = %d\n", Traits::period);
 
     if (Traits::slice == 0){
-        gpio_init(Traits::debugPin);
-        gpio_set_dir(Traits::debugPin, 1);
         hw_set_bits(&timer_hw->inte, 1u << Traits::slice);//use alarm 0
         irq_set_exclusive_handler(TIMER_IRQ_0, pruTimer::SLICE0_Wrapper);
         irq_set_enabled(TIMER_IRQ_0, true);
