@@ -74,7 +74,6 @@ extern "C"
 
 // threads
 #include "thread/pruThread.h"
-#include "thread/createThreads.h"
 
 // modules
 #include "modules/module.h"
@@ -110,8 +109,8 @@ bool threadsRunning = false;
 uint8_t noDataCount;
 
 // pointers to objects with global scope
-pruThread* servoThread;
-pruThread* baseThread;
+BaseThread baseThread(0);
+ServoThread servoThread(1);
 RemoraComms* comms;
 RxPingPongBuffer rxPingPongBuffer;
 TxPingPongBuffer txPingPongBuffer;
@@ -322,7 +321,7 @@ void loadModules()
 
 	// Ethernet communication monitoring
 	comms = new RemoraComms();
-	servoThread->registerModule(comms);
+	servoThread.registerModule(comms);
 
     if (configError) return;
 
@@ -371,10 +370,10 @@ void debugThreadHigh()
     printf("\n  Thread debugging.... \n\n");
 
     Module* debugOnB = new Debug("GP06", 1);
-    baseThread->registerModule(debugOnB);
+    baseThread.registerModule(debugOnB);
 
     Module* debugOnS = new Debug("GP15", 1);
-    servoThread->registerModule(debugOnS);
+    servoThread.registerModule(debugOnS);
 }
 
 
@@ -383,10 +382,10 @@ void debugThreadLow()
     printf("\n  Thread debugging.... \n\n");
 
     Module* debugOffB = new Debug("GP14", 0);
-    baseThread->registerModule(debugOffB);
+    baseThread.registerModule(debugOffB);
 
     Module* debugOffS = new Debug("GP15", 0);
-    servoThread->registerModule(debugOffS);
+    servoThread.registerModule(debugOffS);
 }
 
 void core1_entry()
@@ -414,7 +413,6 @@ void core1_entry()
 
                 jsonFromFlash();
                 deserialiseJSON();
-                createThreads();
                 //debugThreadHigh();
                 loadModules();
                 //debugThreadLow();
@@ -434,10 +432,10 @@ void core1_entry()
                 {
                     // Start the threads
                     printf("\nStarting the BASE thread\n");
-                    baseThread->startThread();
+                    baseThread.startThread();
 
                     printf("\nStarting the SERVO thread\n");
-                    servoThread->startThread();
+                    servoThread.startThread();
 
                     threadsRunning = true;
                 }
@@ -454,7 +452,7 @@ void core1_entry()
                 }
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
-                servoThread->run();                
+                servoThread.run();                
 
                 //wait for data before changing to running state
                 
@@ -474,13 +472,13 @@ void core1_entry()
 
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
-                servoThread->run();
-                
+                servoThread.run();
+
                 if (comms->getStatus() == false)
                 {
                     currentState = ST_RESET;
                 }
-                
+
                 break;
 
             case ST_STOP:
@@ -491,7 +489,7 @@ void core1_entry()
                 }
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
-                servoThread->run();              
+                servoThread.run();
 
                 currentState = ST_STOP;
                 break;
