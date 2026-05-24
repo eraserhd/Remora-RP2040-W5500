@@ -32,7 +32,7 @@ template<class Traits>
 class pruThread
 {
 private:
-    static std::vector<Module*> vThread;             // vector containing pointers to Thread modules
+    static std::vector<Module*> modules;             // vector containing pointers to Thread modules
     static bool execute;
 
     static void startTimer(void)
@@ -64,7 +64,7 @@ private:
 public:
     static void registerModule(Module *module)
     {
-        vThread.push_back(module);
+        modules.push_back(module);
     }
 
     static void start(void)
@@ -77,7 +77,7 @@ public:
         if(!execute) return;
 
         gpio_put(Traits::debugPin, 1);
-        for (auto& m : vThread) m->runModule();
+        for (auto& m : modules) m->runModule();
         gpio_put(Traits::debugPin, 0);
 
         execute = false;
@@ -85,7 +85,7 @@ public:
 };
 
 template<class Traits>
-std::vector<Module*> pruThread<Traits>::vThread;
+std::vector<Module*> pruThread<Traits>::modules;
 
 template<class Traits>
 bool pruThread<Traits>::execute = false;
