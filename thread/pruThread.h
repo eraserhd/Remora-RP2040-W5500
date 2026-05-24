@@ -40,6 +40,9 @@ private:
         printf("    setting up timer Slice %d\n", Traits::slice);
         printf("    actual period = %d\n", Traits::period);
 
+        gpio_init(Traits::debugPin);
+        gpio_set_dir(Traits::debugPin, 1);
+
         hw_set_bits(&timer_hw->inte, 1u << Traits::slice);
         irq_set_exclusive_handler(Traits::irq, ISR_Handler);
         irq_set_enabled(Traits::irq, true);
@@ -59,16 +62,6 @@ private:
     }
 
 public:
-    pruThread()
-    {
-        printf("Creating thread %d\n", Traits::slice);
-
-        gpio_init(Traits::debugPin);
-        gpio_set_dir(Traits::debugPin, 1);
-
-        execute = false;
-    }
-
     static void registerModule(Module *module)
     {
         vThread.push_back(module);
@@ -95,7 +88,7 @@ template<class Traits>
 std::vector<Module*> pruThread<Traits>::vThread;
 
 template<class Traits>
-bool pruThread<Traits>::execute;
+bool pruThread<Traits>::execute = false;
 
 using BaseThread = pruThread<BaseThreadTraits>;
 using ServoThread = pruThread<ServoThreadTraits>;
