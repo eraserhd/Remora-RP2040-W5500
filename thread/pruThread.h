@@ -88,22 +88,6 @@ protected:
         thread = intThisPtr;
     }
 
-    static void SLICE0_Wrapper()
-    {
-        hw_clear_bits(&timer_hw->intr, 1u << 0);
-        timer_hw->alarm[0] += Traits::period;
-        gpio_put(Traits::debugPin, 1);
-        ISR_Handler();
-        gpio_put(Traits::debugPin, 0);
-    }
-
-    static void SLICE1_Wrapper()
-    {
-        hw_clear_bits(&timer_hw->intr, 1u << 1);
-        timer_hw->alarm[1] += Traits::period;
-        ISR_Handler();
-    }
-
 private:
     pruThread<Traits>*  timerOwnerPtr;
 
@@ -111,10 +95,16 @@ private:
 
     static void ISR_Handler(void)
     {
+        hw_clear_bits(&timer_hw->intr, 1u << Traits::slice);
+        timer_hw->alarm[Traits::slice] += Traits::period;
         //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
         thread->execute = true;
         if (Traits::runInISR)
+        {
+            gpio_put(Traits::debugPin, 1);
             thread->run();
+            gpio_put(Traits::debugPin, 0);
+        }
     }
 
 public:
@@ -143,14 +133,14 @@ void pruTimer<Traits>::startTimer(void)
 
     if (Traits::slice == 0){
         hw_set_bits(&timer_hw->inte, 1u << Traits::slice);//use alarm 0
-        irq_set_exclusive_handler(TIMER_IRQ_0, pruTimer::SLICE0_Wrapper);
+        irq_set_exclusive_handler(TIMER_IRQ_0, ISR_Handler);
         irq_set_enabled(TIMER_IRQ_0, true);
         timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
     }
 
     else if (Traits::slice == 1){
         hw_set_bits(&timer_hw->inte, 1u << Traits::slice);//use alarm 1
-        irq_set_exclusive_handler(TIMER_IRQ_1, pruTimer::SLICE1_Wrapper);
+        irq_set_exclusive_handler(TIMER_IRQ_1, ISR_Handler);
         irq_set_enabled(TIMER_IRQ_1, true);
         timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
     } else{
