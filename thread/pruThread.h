@@ -57,15 +57,11 @@ class pruThread
 private:
     static std::vector<Module*> modules;
 
-    static void startTimer(void)
+    static void runModules(void)
     {
-        printf("    setting up timer Slice %d\n", RunPolicy::slice);
-        printf("    actual period = %d\n", RunPolicy::period);
-
-        DebugPinPolicy::init();
-        RunPolicy::init();
-
-        printf("    timer started\n");
+        DebugPinPolicy::set();
+        for (auto& m : modules) m->runModule();
+        DebugPinPolicy::clear();
     }
 
 public:
@@ -77,17 +73,19 @@ public:
 
     static void start(void)
     {
-        startTimer();
+        printf("    setting up timer Slice %d\n", RunPolicy::slice);
+        printf("    actual period = %d\n", RunPolicy::period);
+
+        DebugPinPolicy::init();
+        RunPolicy::init();
+
+        printf("    timer started\n");
     }
 
     static void run(void)
     {
         if(!execute) return;
-
-        DebugPinPolicy::set();
-        for (auto& m : modules) m->runModule();
-        DebugPinPolicy::clear();
-
+        runModules();
         execute = false;
     }
 };
