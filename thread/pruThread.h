@@ -131,21 +131,10 @@ void pruTimer<Traits>::startTimer(void)
     printf("    setting up timer Slice %d\n", Traits::slice);
     printf("    actual period = %d\n", Traits::period);
 
-    if (Traits::slice == 0){
-        hw_set_bits(&timer_hw->inte, 1u << Traits::slice);//use alarm 0
-        irq_set_exclusive_handler(TIMER_IRQ_0, ISR_Handler);
-        irq_set_enabled(TIMER_IRQ_0, true);
-        timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
-    }
-
-    else if (Traits::slice == 1){
-        hw_set_bits(&timer_hw->inte, 1u << Traits::slice);//use alarm 1
-        irq_set_exclusive_handler(TIMER_IRQ_1, ISR_Handler);
-        irq_set_enabled(TIMER_IRQ_1, true);
-        timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
-    } else{
-        printf("    Invalid Slice\n");
-    }
+    hw_set_bits(&timer_hw->inte, 1u << Traits::slice);
+    irq_set_exclusive_handler(Traits::irq, ISR_Handler);
+    irq_set_enabled(Traits::irq, true);
+    timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
 
     printf("    timer started\n");
 }
