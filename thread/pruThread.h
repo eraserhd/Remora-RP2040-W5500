@@ -34,12 +34,11 @@ template<class Traits>
 class pruThread
 {
 protected:
-    static pruThread<Traits>* thread;
+    static pruThread<Traits>* instance;
 
     static void Register(pruThread<Traits>* intThisPtr)
     {
-        printf("Registering interrupt for interrupt number = %d\n", Traits::irq);
-        thread = intThisPtr;
+        instance = intThisPtr;
     }
 
 private:
@@ -61,9 +60,9 @@ private:
         hw_clear_bits(&timer_hw->intr, 1u << Traits::slice);
         timer_hw->alarm[Traits::slice] += Traits::period;
         //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
-        thread->execute = true;
+        instance->execute = true;
         if (Traits::runInISR)
-            thread->run();
+            instance->run();
     }
 
 private:
@@ -106,7 +105,7 @@ public:
 };
 
 template<class Traits>
-pruThread<Traits> *pruThread<Traits>::thread = nullptr;
+pruThread<Traits> *pruThread<Traits>::instance = nullptr;
 
 
 using BaseThread = pruThread<BaseThreadTraits>;
