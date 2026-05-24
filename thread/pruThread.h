@@ -32,10 +32,7 @@ struct IRQThreadRunner
     static constexpr bool runInISR = true;
 };
 
-using BaseThreadTraits = IRQThreadRunner<TIMER_IRQ_0, 1000000 / PRU_BASEFREQ>;
-using ServoThreadTraits = IRQThreadRunner<TIMER_IRQ_1, 1000000 / PRU_SERVOFREQ>;
-
-template<class Traits, class DebugPinPolicy>
+template<class RunPolicy, class DebugPinPolicy>
 class pruThread
 {
 private:
@@ -44,26 +41,26 @@ private:
 
     static void startTimer(void)
     {
-        printf("    setting up timer Slice %d\n", Traits::slice);
-        printf("    actual period = %d\n", Traits::period);
+        printf("    setting up timer Slice %d\n", RunPolicy::slice);
+        printf("    actual period = %d\n", RunPolicy::period);
 
         DebugPinPolicy::init();
 
-        hw_set_bits(&timer_hw->inte, 1u << Traits::slice);
-        irq_set_exclusive_handler(Traits::irq, ISR_Handler);
-        irq_set_enabled(Traits::irq, true);
-        timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
+        hw_set_bits(&timer_hw->inte, 1u << RunPolicy::slice);
+        irq_set_exclusive_handler(RunPolicy::irq, ISR_Handler);
+        irq_set_enabled(RunPolicy::irq, true);
+        timer_hw->alarm[RunPolicy::slice] = timer_hw->timerawl + RunPolicy::period;
 
         printf("    timer started\n");
     }
 
     static void ISR_Handler(void)
     {
-        hw_clear_bits(&timer_hw->intr, 1u << Traits::slice);
-        timer_hw->alarm[Traits::slice] += Traits::period;
+        hw_clear_bits(&timer_hw->intr, 1u << RunPolicy::slice);
+        timer_hw->alarm[RunPolicy::slice] += RunPolicy::period;
         //base thread is run from interrupt context.  Servo thread is not and can get interrupted.
         execute = true;
-        if (Traits::runInISR)
+        if (RunPolicy::runInISR)
             run();
     }
 
@@ -90,13 +87,13 @@ public:
     }
 };
 
-template<class Traits, class DebugPinPolicy>
-std::vector<Module*> pruThread<Traits, DebugPinPolicy>::modules;
+template<class RunPolicy, class DebugPinPolicy>
+std::vector<Module*> pruThread<RunPolicy, DebugPinPolicy>::modules;
 
-template<class Traits, class DebugPinPolicy>
-bool pruThread<Traits, DebugPinPolicy>::execute = false;
+template<class RunPolicy, class DebugPinPolicy>
+bool pruThread<RunPolicy, DebugPinPolicy>::execute = false;
 
-using BaseThread = pruThread<BaseThreadTraits, DebugPin<6>>;
-using ServoThread = pruThread<ServoThreadTraits, DebugPin<27>>;
+using BaseThread = pruThread<IRQThreadRunner<TIMER_IRQ_0, 1000000 / PRU_BASEFREQ>, DebugPin<6>>;
+using ServoThread = pruThread<IRQThreadRunner<TIMER_IRQ_1, 1000000 / PRU_SERVOFREQ>, DebugPin<27>>;
 
 #endif
