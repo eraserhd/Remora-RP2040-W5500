@@ -15,7 +15,7 @@ void createBlink()
 
     // create the blink module
     Module* blink = new Blink(pin, PRU_SERVOFREQ, freq);
-    servoThread.registerModule(blink);
+    ServoThread::registerModule(blink);
 }
 
 /***********************************************************************

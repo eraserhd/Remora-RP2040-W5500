@@ -97,6 +97,6 @@ Stepgen *createStepgen()
         step, dir, steplen, stepspace,
         dirsetup, dirhold, dirdelay
     );
-    baseThread.registerModule(stepgen);
+    BaseThread::registerModule(stepgen);
     return stepgen;
 }

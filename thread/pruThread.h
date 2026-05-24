@@ -31,10 +31,9 @@ struct ServoThreadTraits
 template<class Traits>
 class pruThread
 {
-protected:
+private:
     static std::vector<Module*> vThread;             // vector containing pointers to Thread modules
 
-private:
     static void startTimer(void)
     {
         printf("    setting up timer Slice %d\n", Traits::slice);
@@ -58,9 +57,9 @@ private:
             run();
     }
 
-public:
     static bool execute;
 
+public:
     pruThread()
     {
         printf("Creating thread %d\n", Traits::slice);
@@ -76,7 +75,7 @@ public:
         vThread.push_back(module);
     }
 
-    static void startThread(void)
+    static void start(void)
     {
         startTimer();
     }

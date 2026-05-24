@@ -51,12 +51,12 @@ void createDigitalPin()
     if (!strcmp(mode,"Output"))
     {
         Module* digitalPin = new DigitalPin(1, pin, dataBit, inv, mod);
-        servoThread.registerModule(digitalPin);
+        ServoThread::registerModule(digitalPin);
     }
     else if (!strcmp(mode,"Input"))
     {
         Module* digitalPin = new DigitalPin(0, pin, dataBit, inv, mod);
-        servoThread.registerModule(digitalPin);
+        ServoThread::registerModule(digitalPin);
     }
     else
     {

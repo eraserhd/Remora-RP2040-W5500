@@ -320,7 +320,7 @@ void loadModules()
 
 	// Ethernet communication monitoring
 	comms = new RemoraComms();
-	servoThread.registerModule(comms);
+	ServoThread::registerModule(comms);
 
     if (configError) return;
 
@@ -431,10 +431,10 @@ void core1_entry()
                 {
                     // Start the threads
                     printf("\nStarting the BASE thread\n");
-                    baseThread.startThread();
+                    BaseThread::start();
 
                     printf("\nStarting the SERVO thread\n");
-                    servoThread.startThread();
+                    ServoThread::start();
 
                     threadsRunning = true;
                 }
@@ -451,7 +451,7 @@ void core1_entry()
                 }
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
-                servoThread.run();                
+                ServoThread::run();                
 
                 //wait for data before changing to running state
                 
@@ -471,7 +471,7 @@ void core1_entry()
 
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
-                servoThread.run();
+                ServoThread::run();
 
                 if (comms->getStatus() == false)
                 {
@@ -488,7 +488,7 @@ void core1_entry()
                 }
                 prevState = currentState;
                 //servo thread is run outside of interrupt context.
-                servoThread.run();
+                ServoThread::run();
 
                 currentState = ST_STOP;
                 break;
