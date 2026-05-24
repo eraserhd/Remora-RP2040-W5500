@@ -10,12 +10,24 @@
 #include <vector>
 #include <cstdint>
 
+
+template<int Pin>
+struct DebugPin
+{
+    inline static void init(void)
+    {
+        gpio_init(Pin);
+        gpio_set_dir(Pin, 1);
+    }
+    inline static void set(void)   { gpio_put(Pin, 1); }
+    inline static void clear(void) { gpio_put(Pin, 0); }
+};
+
 struct BaseThreadTraits
 {
     static constexpr int slice = 0;
     static constexpr int irq = TIMER_IRQ_0;
     static constexpr uint32_t period = 1000000 / PRU_BASEFREQ;
-    static constexpr int debugPin = 6;
     static constexpr bool runInISR = true;
 };
 
@@ -24,11 +36,10 @@ struct ServoThreadTraits
     static constexpr int slice = 1;
     static constexpr int irq = TIMER_IRQ_1;
     static constexpr uint32_t period = 1000000 / PRU_SERVOFREQ;
-    static constexpr int debugPin = 27;
     static constexpr bool runInISR = false;
 };
 
-template<class Traits>
+template<class Traits, class DebugPinPolicy>
 class pruThread
 {
 private:
@@ -40,8 +51,7 @@ private:
         printf("    setting up timer Slice %d\n", Traits::slice);
         printf("    actual period = %d\n", Traits::period);
 
-        gpio_init(Traits::debugPin);
-        gpio_set_dir(Traits::debugPin, 1);
+        DebugPinPolicy::init();
 
         hw_set_bits(&timer_hw->inte, 1u << Traits::slice);
         irq_set_exclusive_handler(Traits::irq, ISR_Handler);
@@ -76,21 +86,21 @@ public:
     {
         if(!execute) return;
 
-        gpio_put(Traits::debugPin, 1);
+        DebugPinPolicy::set();
         for (auto& m : modules) m->runModule();
-        gpio_put(Traits::debugPin, 0);
+        DebugPinPolicy::clear();
 
         execute = false;
     }
 };
 
-template<class Traits>
-std::vector<Module*> pruThread<Traits>::modules;
+template<class Traits, class DebugPinPolicy>
+std::vector<Module*> pruThread<Traits, DebugPinPolicy>::modules;
 
-template<class Traits>
-bool pruThread<Traits>::execute = false;
+template<class Traits, class DebugPinPolicy>
+bool pruThread<Traits, DebugPinPolicy>::execute = false;
 
-using BaseThread = pruThread<BaseThreadTraits>;
-using ServoThread = pruThread<ServoThreadTraits>;
+using BaseThread = pruThread<BaseThreadTraits, DebugPin<6>>;
+using ServoThread = pruThread<ServoThreadTraits, DebugPin<27>>;
 
 #endif
