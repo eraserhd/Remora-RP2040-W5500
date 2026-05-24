@@ -33,6 +33,7 @@ class pruThread
 {
 private:
     static std::vector<Module*> vThread;             // vector containing pointers to Thread modules
+    static bool execute;
 
     static void startTimer(void)
     {
@@ -56,8 +57,6 @@ private:
         if (Traits::runInISR)
             run();
     }
-
-    static bool execute;
 
 public:
     pruThread()
