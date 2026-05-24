@@ -109,8 +109,8 @@ bool threadsRunning = false;
 uint8_t noDataCount;
 
 // pointers to objects with global scope
-BaseThread baseThread(0);
-ServoThread servoThread(1);
+BaseThread baseThread;
+ServoThread servoThread;
 RemoraComms* comms;
 RxPingPongBuffer rxPingPongBuffer;
 TxPingPongBuffer txPingPongBuffer;

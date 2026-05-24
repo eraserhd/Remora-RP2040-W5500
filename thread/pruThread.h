@@ -14,6 +14,7 @@ using namespace std;
 
 struct BaseThreadTraits
 {
+    static constexpr int slice = 0;
     static constexpr int irq = TIMER_IRQ_0;
     static constexpr uint32_t period = 1000000 / PRU_BASEFREQ;
     static constexpr int debugPin = 6;
@@ -22,6 +23,7 @@ struct BaseThreadTraits
 
 struct ServoThreadTraits
 {
+    static constexpr int slice = 1;
     static constexpr int irq = TIMER_IRQ_1;
     static constexpr uint32_t period = 1000000 / PRU_SERVOFREQ;
     static constexpr int debugPin = 27;
@@ -32,14 +34,22 @@ template<class Traits>
 class pruThread
 {
 private:
-    uint8_t                         slice;
-
     vector<Module*> vThread;                // vector containing pointers to Thread modules
 
 public:
     bool                            execute;
 
-    pruThread(uint8_t slice);
+    pruThread()
+    {
+        printf("Creating thread %d\n", Traits::slice);
+
+        if (Traits::slice == 1){
+            gpio_init(27);
+            gpio_set_dir(27, 1);
+        }
+
+        this->execute = false;
+    }
 
     void registerModule(Module *module)
     {
@@ -53,13 +63,13 @@ public:
         if(!this->execute)
             return;
 
-        if (this->slice == 1){
+        if (Traits::slice == 1){
             gpio_put(27, 1);
         }
 
         for (auto& m : vThread) m->runModule();
 
-        if (this->slice == 1){
+        if (Traits::slice == 1){
             gpio_put(27, 0);
         }
 
@@ -97,8 +107,6 @@ protected:
     }
 
 private:
-
-    uint8_t             slice;
     pruThread<Traits>*  timerOwnerPtr;
 
     void startTimer(void);
@@ -112,9 +120,8 @@ private:
     }
 
 public:
-    pruTimer(uint8_t slice, pruThread<Traits>* ownerPtr)
-        : slice(slice)
-        , timerOwnerPtr(ownerPtr)
+    pruTimer(pruThread<Traits>* ownerPtr)
+        : timerOwnerPtr(ownerPtr)
     {
         Register(ownerPtr);
         this->startTimer();
@@ -124,7 +131,7 @@ public:
 template<class Traits>
 void pruThread<Traits>::startThread(void)
 {
-    new pruTimer<Traits>(this->slice, this);
+    new pruTimer<Traits>(this);
 }
 
 template<class Traits>
@@ -133,42 +140,28 @@ pruThread<Traits> *pruTimer<Traits>::thread = nullptr;
 template<class Traits>
 void pruTimer<Traits>::startTimer(void)
 {
-    printf("    setting up timer Slice %d\n", this->slice);
+    printf("    setting up timer Slice %d\n", Traits::slice);
     printf("    actual period = %d\n", Traits::period);
 
-    if (this->slice == 0){
+    if (Traits::slice == 0){
         gpio_init(Traits::debugPin);
         gpio_set_dir(Traits::debugPin, 1);
-        hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 0
+        hw_set_bits(&timer_hw->inte, 1u << Traits::slice);//use alarm 0
         irq_set_exclusive_handler(TIMER_IRQ_0, pruTimer::SLICE0_Wrapper);
         irq_set_enabled(TIMER_IRQ_0, true);
-        timer_hw->alarm[slice] = timer_hw->timerawl + Traits::period;
+        timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
     }
 
-    else if (this->slice == 1){
-        hw_set_bits(&timer_hw->inte, 1u << slice);//use alarm 1
+    else if (Traits::slice == 1){
+        hw_set_bits(&timer_hw->inte, 1u << Traits::slice);//use alarm 1
         irq_set_exclusive_handler(TIMER_IRQ_1, pruTimer::SLICE1_Wrapper);
         irq_set_enabled(TIMER_IRQ_1, true);
-        timer_hw->alarm[slice] = timer_hw->timerawl + Traits::period;
+        timer_hw->alarm[Traits::slice] = timer_hw->timerawl + Traits::period;
     } else{
         printf("    Invalid Slice\n");
     }
 
     printf("    timer started\n");
-}
-
-template<class Traits>
-pruThread<Traits>::pruThread(uint8_t slice) :
-    slice(slice)
-{
-    printf("Creating thread %d\n", this->slice);
-
-    if (this->slice == 1){
-        gpio_init(27);
-        gpio_set_dir(27, 1);
-    }
-
-    this->execute = false;
 }
 
 using BaseThread = pruThread<BaseThreadTraits>;
